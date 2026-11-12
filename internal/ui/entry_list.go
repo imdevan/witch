@@ -76,6 +76,20 @@ func (f TypeFilter) Label() string {
 	}
 }
 
+// ShortLabel is the compact name used in the type line under the search.
+func (f TypeFilter) ShortLabel() string {
+	switch f {
+	case FilterAlias:
+		return "aliases"
+	case FilterFunction:
+		return "funcs"
+	case FilterExecutable:
+		return "bin"
+	default:
+		return "all"
+	}
+}
+
 // Next cycles forward (delta 1) or backward (delta -1) through filters.
 func (f TypeFilter) Next(delta int) TypeFilter {
 	n := int(typeFilterCount)

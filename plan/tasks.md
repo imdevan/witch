@@ -4,43 +4,43 @@
   - [x] 1.1.1 Update `internal/package/package.toml` description/short ("which, but better")
   - [x] 1.1.2 Module path → `github.com/imdevan/witch`
   - [x] 1.1.3 Sync `package.toml` `module` with `go.mod` and run `just sync`
-- [ ] 1.2 Remove template-only code
-  - [ ] 1.2.1 Strip directory-listing demo + stub actions from `cmd/witch/root.go`
-  - [ ] 1.2.2 Remove unused adapters (icon/tty/shell alias formatter) or keep only what witch uses
-- [ ] 1.3 Docs
-  - [ ] 1.3.1 Rewrite `README.md`, `INSTALL.md`, `example-config.toml` for witch
-  - [ ] 1.3.2 Update `config_init.go` defaults
-- [ ] 1.4 `just build` and `just test` pass after cleanup
+- [x] 1.2 Remove template-only code
+  - [x] 1.2.1 Strip directory-listing demo + stub actions from `cmd/witch/root.go`
+  - [x] 1.2.2 Remove unused adapters (icon/tty/shell alias formatter) or keep only what witch uses
+- [x] 1.3 Docs
+  - [x] 1.3.1 Rewrite `README.md`, `INSTALL.md`, `example-config.toml` for witch
+  - [x] 1.3.2 Update `config_init.go` defaults
+- [x] 1.4 `just build` and `just test` pass after cleanup
 
 ## Feature 2: Sources 
-- [ ] 2.1 Domain model
-  - [ ] 2.1.1 `domain.Entry` { Name, Description, File, Line }
-  - [ ] 2.1.2 Alias sub-types: regular, global (`-g`), suffix (`-s`)
-- [ ] 2.2 Config sources
-  - [ ] 2.2.1 `[[sources]]` array in config.toml with `path` (file or dir)
-  - [ ] 2.2.2 No default location. Default behavior is just which fallback.
-  - [ ] 2.2.3 `[[ignore]]` array in config.toml can be direct file or blob pattern
-  - [ ] 2.2.4 Parse `alias [-g|-s] name="value" # comment`; comment → description
-  - [ ] 2.2.5 Expand brace suffix aliases (`alias -s {js,ts,...}=...`) into one entry each
-  - [ ] 2.2.6 Record file + line number
-- [ ] 2.3 Function parser 
-  - [ ] 2.3.1 Definitions: `function name()`, `function name {`, `name() {` → name + line
-  - [ ] 2.3.2 Aliases declared inside function files (e.g. `alias fd="fzf_cd"`) → alias entries
-- [ ] 2.4 PATH executables 
-  - [ ] 2.4.1 Walk `$PATH` in order, collect executable files
-  - [ ] 2.4.2 Keep every match; mark later duplicates as shadowed (like `which -a`)
-  - [ ] 2.4.3 Resolve symlinks for the preview
-  - [ ] 2.4.4 Config toggle to disable PATH indexing
-- [ ] 2.5 Collector merges all sources; precedence alias > function > PATH for exact-name lookups
-- [ ] 2.6 Unit tests per parser with fixture files copied from real dotfiles formats
+- [x] 2.1 Domain model
+  - [x] 2.1.1 `domain.Entry` { Name, Description, File, Line }
+  - [x] 2.1.2 Alias sub-types: regular, global (`-g`), suffix (`-s`)
+- [x] 2.2 Config sources
+  - [x] 2.2.1 `[[sources]]` array in config.toml with `path` (file or dir)
+  - [x] 2.2.2 No default location. Default behavior is just which fallback.
+  - [x] 2.2.3 `[[ignore]]` array in config.toml can be direct file or blob pattern
+  - [x] 2.2.4 Parse `alias [-g|-s] name="value" # comment`; comment → description
+  - [x] 2.2.5 Expand brace suffix aliases (`alias -s {js,ts,...}=...`) into one entry each
+  - [x] 2.2.6 Record file + line number
+- [x] 2.3 Function parser 
+  - [x] 2.3.1 Definitions: `function name()`, `function name {`, `name() {` → name + line
+  - [x] 2.3.2 Aliases declared inside function files (e.g. `alias fd="fzf_cd"`) → alias entries
+- [x] 2.4 PATH executables 
+  - [x] 2.4.1 Walk `$PATH` in order, collect executable files
+  - [x] 2.4.2 Keep every match; mark later duplicates as shadowed (like `which -a`)
+  - [x] 2.4.3 Resolve symlinks for the preview
+  - [x] 2.4.4 Config toggle to disable PATH indexing
+- [x] 2.5 Collector merges all sources; precedence alias > function > PATH for exact-name lookups
+- [x] 2.6 Unit tests per parser with fixture files copied from real dotfiles formats
 
 ## Feature 3: CLI behavior
-- [ ] 3.1 `witch <name>` non-interactive when exact match and stdout is not a TTY (drop-in for `which`)
-- [ ] 3.2 `witch` with no args / ambiguous match → interactive UI
-- [ ] 3.3 Flags: `-a/--all`, `-t/--type`, `--json`, `-i/--interactive`
-- [ ] 3.4 Exit code 1 when nothing found (match `which`)
-- [ ] 3.5 Update `README.md`, `example-config.toml`, `config_init.go` for new flags and `[[sources]]`
-- [ ] 3.6 cmd tests for non-interactive output
+- [x] 3.1 `witch <name>` non-interactive when exact match and stdout is not a TTY (drop-in for `which`)
+- [x] 3.2 `witch` with no args / ambiguous match → interactive UI
+- [x] 3.3 Flags: `-a/--all`, `-t/--type`, `--json`, `-i/--interactive`
+- [x] 3.4 Exit code 1 when nothing found (match `which`)
+- [x] 3.5 Update `README.md`, `example-config.toml`, `config_init.go` for new flags and `[[sources]]`
+- [x] 3.6 cmd tests for non-interactive output
 
 ## Feature 4: Split UI
 - [ ] 4.1 Split layout component in `internal/ui/split.go`

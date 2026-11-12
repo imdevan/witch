@@ -74,7 +74,24 @@
 - [x] 4.5 Responsive help keys, matching template patterns
   - [x] 4.5.1 bubbles `help` short view trimmed by breakpoint (XS 2, SM 3, MD 4, LG+ all), `?` always kept; `?` toggles full help and re-lays out panes
 - [x] 4.6 Tests: split layout sizing, preview highlight/scroll/cache/binary, browser keys (split vs narrow, enter, quit, prefilled filter, type cycle, copy, open, help)
+- [x] 4.7 add highlight color to config
+  - [x] 4.7.1 `highlight` option (default `"03"`) in `domain.Config`, config loader, and `ui.Theme`
+  - [x] 4.7.2 Documented in `config_init.go` template, `example-config.toml`, `CONFIG.md`, `README.md`; config tests updated
+- [x] 4.8 highlight the alias or function name and the searched for word (if different) in the preview view
+  - [x] 4.8.1 Whole-word occurrences of the entry name highlighted on every preview line (`highlight` background, dark foreground), styled with `lipgloss.StyleRunes`
+  - [x] 4.8.2 Search term (CLI arg or live filter text) highlighted as a case-insensitive substring; skipped when it equals the name
+  - [x] 4.8.3 Typing a filter updates highlights without moving the preview scroll position; clearing the filter clears them
+  - [x] 4.8.4 Tests for match indices (word boundaries, case, unicode) and rendered highlight/query flow
 
-## Feature 5: Release
-- [ ] 5.1 Docs site via `just docs-generate`
-- [ ] 5.2 `just release` / homebrew
+
+## Feature 5: search/filtering
+
+- [ ] 5.1 default mode to filtering
+- [ ] 5.2 remove filter label. as the default behavior will be ->user types, user searches.
+- [ ] 5.3 always show which type the filter list is showing under the search.
+  - [ ] 5.3.1 show a line between filter and items with: all aliases funcs bin
+  - muted text. Except for current 
+
+## Feature 6: Release
+- [ ] 6.1 Docs site via `just docs-generate`
+- [ ] 6.2 `just release` / homebrew

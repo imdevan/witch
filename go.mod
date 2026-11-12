@@ -1,4 +1,4 @@
-module github.com/go-cli-template
+module github.com/imdevan/witch
 
 go 1.25.6
 

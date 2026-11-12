@@ -12,11 +12,11 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/spf13/cobra"
 
-	"github.com/go-cli-template/internal/config"
-	"github.com/go-cli-template/internal/domain"
-	pkg "github.com/go-cli-template/internal/package"
-	"github.com/go-cli-template/internal/ui"
-	"github.com/go-cli-template/internal/utils"
+	"github.com/imdevan/witch/internal/config"
+	"github.com/imdevan/witch/internal/domain"
+	pkg "github.com/imdevan/witch/internal/package"
+	"github.com/imdevan/witch/internal/ui"
+	"github.com/imdevan/witch/internal/utils"
 )
 
 // Metadata loaded from package.toml at build time

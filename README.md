@@ -108,7 +108,7 @@ Press `esc` or `↓` to move into the list to scroll and use single-key actions;
 
 On narrow terminals `enter` opens a full-width preview first; there, `enter` runs the selection, `esc` goes back, and `j`/`k` scroll.
 
-The browser is inline, so it draws below your prompt and leaves only the printed result behind when it exits.
+By default the browser is inline: it draws below your prompt (up to 40 lines) and leaves only the printed result behind when it exits. Set `fullscreen = true` to render it on the alternate screen, filling the whole terminal pane; your scrollback is restored when it exits.
 
 ### Shell integration
 
@@ -173,6 +173,7 @@ path = "*.zwc"          # a glob without a slash matches file names anywhere
 | `interactive_default` | bool | `true` | Open the interactive list when no name is given (or none matches) on a terminal |
 | `enter_action` | string | `execute` | `enter` in the browser runs the selection (`execute`) or prints it (`print`) |
 | `editor` | string | `nvim` | Editor used by `witch config` and `witch -o` |
+| `fullscreen` | bool | `false` | Render the interactive browser fullscreen instead of inline |
 | `list_spacing` | string | `space` | List density: `compact`, `tight`, `space` |
 | `highlight` | string | `03` | Background color for the name and search term in the preview |
 

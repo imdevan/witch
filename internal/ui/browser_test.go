@@ -453,3 +453,26 @@ func TestBrowserPreviewScroll(t *testing.T) {
 		t.Errorf("ctrl+u should clear the search, got %q", edited.search.Value())
 	}
 }
+
+func TestBrowserFullscreenFillsTerminal(t *testing.T) {
+	entries := fixtureEntries(t)
+	for _, height := range []int{20, 60} {
+		m := sized(newBrowserModel(entries, testTheme(), BrowserOptions{Fullscreen: true}), 120, height)
+		if got := lipgloss.Height(m.View()); got != height {
+			t.Errorf("fullscreen at %d rows rendered %d rows, want the full pane", height, got)
+		}
+		full := press(m, "esc", "?").(browserModel)
+		if got := lipgloss.Height(full.View()); got != height {
+			t.Errorf("fullscreen with full help rendered %d rows, want %d", got, height)
+		}
+	}
+
+	inline := sized(newBrowserModel(entries, testTheme(), BrowserOptions{}), 120, 60)
+	if got := lipgloss.Height(inline.View()); got != 40 {
+		t.Errorf("inline should cap at 40 rows on a tall terminal, got %d", got)
+	}
+	short := sized(newBrowserModel(entries, testTheme(), BrowserOptions{}), 120, 20)
+	if got := lipgloss.Height(short.View()); got != 19 {
+		t.Errorf("inline should leave the last row for the prompt, got %d of 20", got)
+	}
+}

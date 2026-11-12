@@ -100,6 +100,7 @@ type partialConfig struct {
 	Border               *string         `toml:"border"`
 	Highlight            *string         `toml:"highlight"`
 	InteractiveDefault   *bool           `toml:"interactive_default"`
+	Fullscreen           *bool           `toml:"fullscreen"`
 	ListSpacing          *string         `toml:"list_spacing"`
 	EnterAction          *string         `toml:"enter_action"`
 	IndexPath            *bool           `toml:"index_path"`
@@ -177,6 +178,9 @@ func applyPartial(config *domain.Config, partial *partialConfig) {
 	}
 	if partial.InteractiveDefault != nil {
 		config.InteractiveDefault = *partial.InteractiveDefault
+	}
+	if partial.Fullscreen != nil {
+		config.Fullscreen = *partial.Fullscreen
 	}
 	if partial.ListSpacing != nil {
 		config.ListSpacing = *partial.ListSpacing

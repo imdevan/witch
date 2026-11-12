@@ -262,10 +262,11 @@ func runPicker(cmd *cobra.Command, cfg domain.Config, opts *rootOptions, entries
 	}
 	clip := clipboard.Adapter{}
 	result, err := ui.RunBrowser(entries, ui.ThemeFromConfig(cfg), ui.BrowserOptions{
-		Title:   name,
-		Filter:  filter,
-		Spacing: cfg.ListSpacing,
-		Copy:    clip.WriteText,
+		Title:      name,
+		Filter:     filter,
+		Spacing:    cfg.ListSpacing,
+		Copy:       clip.WriteText,
+		Fullscreen: cfg.Fullscreen,
 	}, tty.GetProgramOptions()...)
 	if err != nil {
 		return err

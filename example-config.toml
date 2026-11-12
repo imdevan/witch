@@ -13,6 +13,10 @@ enter_action = "execute"
 index_path = true
 
 # UI
+# Render the interactive browser fullscreen (alternate screen, whole terminal pane)
+# instead of inline below the prompt.
+fullscreen = false
+
 # list_spacing options: compact (title only), tight (title + description, no margin), space (default, with spacing)
 list_spacing = "space"
 

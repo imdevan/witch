@@ -22,7 +22,10 @@ type Config struct {
 	// Highlight colors matches of the name and search term in the preview.
 	Highlight          string `toml:"highlight"`
 	InteractiveDefault bool   `toml:"interactive_default"`
-	ListSpacing        string `toml:"list_spacing"`
+	// Fullscreen renders the interactive browser on the alternate screen,
+	// filling the terminal pane, instead of inline below the prompt.
+	Fullscreen  bool   `toml:"fullscreen"`
+	ListSpacing string `toml:"list_spacing"`
 	// EnterAction is what enter does in the interactive browser:
 	// "execute" (run the selection) or "print" (print it, like witch <name>).
 	EnterAction string `toml:"enter_action"`

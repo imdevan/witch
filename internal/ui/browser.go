@@ -39,8 +39,12 @@ type BrowserOptions struct {
 	Spacing string // list spacing: compact, tight, space
 	// Copy writes text to the clipboard. Nil disables the copy keys.
 	Copy func(string) error
-	// MaxHeight caps the inline UI height (default 40 lines).
+	// MaxHeight caps the inline UI height (default 40 lines). Ignored when
+	// Fullscreen is set.
 	MaxHeight int
+	// Fullscreen renders on the alternate screen using the whole terminal
+	// pane instead of inline below the prompt.
+	Fullscreen bool
 }
 
 // browserFocus is where keystrokes go.
@@ -115,6 +119,7 @@ type browserModel struct {
 	typeFilter TypeFilter
 	focus      browserFocus
 	maxHeight  int
+	fullscreen bool
 	width      int
 	height     int
 	// previewMode is the narrow-screen preview opened with enter.
@@ -128,6 +133,9 @@ type browserModel struct {
 // RunBrowser shows the inline split list/preview browser and returns what
 // the user selected.
 func RunBrowser(entries []domain.Entry, theme Theme, opts BrowserOptions, programOpts ...tea.ProgramOption) (BrowserResult, error) {
+	if opts.Fullscreen {
+		programOpts = append(programOpts, tea.WithAltScreen())
+	}
 	final, err := tea.NewProgram(newBrowserModel(entries, theme, opts), programOpts...).Run()
 	if err != nil {
 		return BrowserResult{}, fmt.Errorf("failed to run interactive list: %w", err)
@@ -148,6 +156,7 @@ func newBrowserModel(entries []domain.Entry, theme Theme, opts BrowserOptions) b
 		responsive: NewResponsiveManager(80),
 		layout:     NewSplitLayout(theme),
 		maxHeight:  opts.MaxHeight,
+		fullscreen: opts.Fullscreen,
 		copy:       opts.Copy,
 	}
 	if m.maxHeight <= 0 {
@@ -202,8 +211,12 @@ func (m *browserModel) resize(width, height int) {
 	m.responsive.SetWidth(width)
 	m.help.Width = width
 
-	// Inline: leave the last terminal row for the cursor, and stay compact.
-	total := max(min(height-1, m.maxHeight), 8)
+	total := height
+	if !m.fullscreen {
+		// Inline: leave the last row for the cursor and stay compact.
+		total = min(height-1, m.maxHeight)
+	}
+	total = max(total, 8)
 	m.layout.Width = width
 	m.layout.Height = max(total-lipgloss.Height(m.footer()), 5)
 

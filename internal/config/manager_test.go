@@ -360,7 +360,7 @@ func TestManagerBooleanOverrides(t *testing.T) {
 		t.Fatalf("mkdir config dir: %v", err)
 	}
 
-	data := []byte("interactive_default = false\nenter_action = \"print\"\n")
+	data := []byte("interactive_default = false\nenter_action = \"print\"\nfullscreen = true\n")
 	if err := os.WriteFile(configPath, data, 0o644); err != nil {
 		t.Fatalf("write config: %v", err)
 	}
@@ -373,6 +373,9 @@ func TestManagerBooleanOverrides(t *testing.T) {
 
 	if cfg.InteractiveDefault {
 		t.Error("expected interactive_default to be false from config")
+	}
+	if !cfg.Fullscreen {
+		t.Error("expected fullscreen = true from config")
 	}
 	if cfg.EnterAction != domain.EnterPrint {
 		t.Errorf("expected enter_action from config, got %q", cfg.EnterAction)

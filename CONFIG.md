@@ -34,6 +34,7 @@ Ignore patterns:
 | `editor` | string | `nvim` | Editor used by `witch config` and `witch -o` (falls back to `$VISUAL` / `$EDITOR` when empty) |
 | `enter_action` | string | `execute` | What `enter` does in the interactive browser: `execute` runs the selected alias, function, or executable (see [shell integration](README.md#shell-integration)); `print` prints it like `witch <name>` |
 | `interactive_default` | bool | `true` | On a terminal, open the interactive list when no name is given or no name matches exactly |
+| `fullscreen` | bool | `false` | Render the interactive browser fullscreen (alternate screen, whole terminal pane) instead of inline below the prompt |
 | `list_spacing` | string | `space` | List density: `compact` (title only), `tight` (title + description, no margin), `space` (with spacing) |
 
 ## Colors
@@ -73,6 +74,10 @@ enter_action = "execute"
 index_path = true
 
 # UI
+# Render the interactive browser fullscreen (alternate screen, whole terminal pane)
+# instead of inline below the prompt.
+fullscreen = false
+
 # list_spacing options: compact (title only), tight (title + description, no margin), space (default, with spacing)
 list_spacing = "space"
 

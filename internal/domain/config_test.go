@@ -84,6 +84,12 @@ func TestDefaultConfig(t *testing.T) {
 		}
 	})
 
+	t.Run("inline by default", func(t *testing.T) {
+		if cfg.Fullscreen {
+			t.Error("DefaultConfig().Fullscreen should be false")
+		}
+	})
+
 	t.Run("enter executes by default", func(t *testing.T) {
 		if cfg.EnterAction != EnterExecute {
 			t.Errorf("DefaultConfig().EnterAction = %q, want %q", cfg.EnterAction, EnterExecute)

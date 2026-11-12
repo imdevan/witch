@@ -373,3 +373,88 @@ func TestManagerBooleanOverrides(t *testing.T) {
 		t.Error("expected interactive_default to be false from config")
 	}
 }
+
+func TestManagerSourcesAndIgnore(t *testing.T) {
+	root := t.TempDir()
+	cwd := filepath.Join(root, "project")
+	if err := os.MkdirAll(cwd, 0o755); err != nil {
+		t.Fatalf("mkdir cwd: %v", err)
+	}
+	t.Setenv("XDG_CONFIG_HOME", filepath.Join(root, "config"))
+	t.Setenv("HOME", filepath.Join(root, "home"))
+	t.Setenv("DOTFILES", "/dots")
+
+	globalPath := utils.ConfigPathGlobal()
+	if err := os.MkdirAll(filepath.Dir(globalPath), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	global := `
+index_path = false
+
+[[sources]]
+path = "~/.aliases/aliases.zsh"
+
+[[sources]]
+path = "$DOTFILES/functions"
+
+[[sources]]
+path = "relative.sh"
+
+[[ignore]]
+path = "*.zwc"
+
+[[ignore]]
+path = "~/.functions/old"
+`
+	if err := os.WriteFile(globalPath, []byte(global), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	localPath := utils.ConfigPathLocal(cwd)
+	if err := os.MkdirAll(filepath.Dir(localPath), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(localPath, []byte("[[sources]]\npath = \"project.sh\"\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	cfg, err := NewManager(cwd).Load()
+	if err != nil {
+		t.Fatalf("load: %v", err)
+	}
+	if cfg.IndexPath {
+		t.Error("expected index_path = false")
+	}
+	wantSources := []domain.Source{
+		{Path: filepath.Join(root, "home", ".aliases", "aliases.zsh")},
+		{Path: "/dots/functions"},
+		{Path: filepath.Join(filepath.Dir(globalPath), "relative.sh")},
+		{Path: filepath.Join(filepath.Dir(localPath), "project.sh")},
+	}
+	if len(cfg.Sources) != len(wantSources) {
+		t.Fatalf("sources = %+v", cfg.Sources)
+	}
+	for i := range wantSources {
+		if cfg.Sources[i] != wantSources[i] {
+			t.Errorf("source[%d] = %q, want %q", i, cfg.Sources[i].Path, wantSources[i].Path)
+		}
+	}
+	wantIgnore := []domain.Ignore{
+		{Path: "*.zwc"},
+		{Path: filepath.Join(root, "home", ".functions", "old")},
+	}
+	if len(cfg.Ignore) != 2 || cfg.Ignore[0] != wantIgnore[0] || cfg.Ignore[1] != wantIgnore[1] {
+		t.Errorf("ignore = %+v, want %+v", cfg.Ignore, wantIgnore)
+	}
+}
+
+func TestManagerDefaultsHaveNoSources(t *testing.T) {
+	root := t.TempDir()
+	t.Setenv("XDG_CONFIG_HOME", filepath.Join(root, "config"))
+	cfg, err := NewManager(root).Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(cfg.Sources) != 0 || !cfg.IndexPath {
+		t.Fatalf("expected no default sources and PATH indexing on, got %+v", cfg)
+	}
+}

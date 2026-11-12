@@ -1,6 +1,7 @@
 package tty
 
 import (
+	"io"
 	"os"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -10,6 +11,13 @@ import (
 // IsTerminal checks if the file descriptor is a terminal
 func IsTerminal(fd uintptr) bool {
 	return term.IsTerminal(int(fd))
+}
+
+// IsTerminalWriter reports whether w is a file attached to a terminal.
+// Buffers and pipes (e.g. in tests or `$(witch ...)`) are not terminals.
+func IsTerminalWriter(w io.Writer) bool {
+	f, ok := w.(*os.File)
+	return ok && IsTerminal(f.Fd())
 }
 
 // GetProgramOptions returns Bubble Tea program options with TTY redirection

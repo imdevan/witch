@@ -2,7 +2,11 @@
 editor = "nvim"
 
 # CLI behavior
+# Open the interactive list when run with no name (or no exact match) on a terminal.
 interactive_default = true
+
+# Index executables on $PATH (like which). Set false to only search sources.
+index_path = true
 
 # UI
 # list_spacing options: compact (title only), tight (title + description, no margin), space (default, with spacing)
@@ -18,5 +22,29 @@ text_highlight = "06"
 description_highlight = "05"
 tags = "13"
 flags = "12"
+accent = "13"
 muted = "08"
 border = "08"
+
+# Sources
+# Shell files or directories to parse for aliases and functions.
+# Directories are searched recursively. There are no default sources:
+# without any, witch only searches $PATH, like which.
+# Paths support ~ and $VARS; relative paths are relative to this file.
+[[sources]]
+path = "~/.zshrc"
+
+[[sources]]
+path = "~/.aliases/aliases.zsh"
+
+[[sources]]
+path = "~/.functions"
+
+# Ignore
+# Files, directories, or glob patterns to skip inside sources.
+# A glob without a slash (like "*.zwc") matches file names anywhere.
+[[ignore]]
+path = "*.zwc"
+
+[[ignore]]
+path = "~/.functions/old"

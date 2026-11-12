@@ -1,22 +1,21 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"runtime/debug"
 	"strings"
-	"time"
 
-	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/list"
-	tea "github.com/charmbracelet/bubbletea"
 	"github.com/spf13/cobra"
 
+	"github.com/imdevan/witch/internal/adapters/tty"
 	"github.com/imdevan/witch/internal/config"
 	"github.com/imdevan/witch/internal/domain"
 	pkg "github.com/imdevan/witch/internal/package"
+	"github.com/imdevan/witch/internal/sources"
 	"github.com/imdevan/witch/internal/ui"
-	"github.com/imdevan/witch/internal/utils"
 )
 
 // Metadata loaded from package.toml at build time
@@ -29,6 +28,10 @@ var (
 type rootOptions struct {
 	configPath  string
 	showVersion bool
+	all         bool
+	json        bool
+	interactive bool
+	types       []string
 }
 
 var rootCmd = newRootCmd()
@@ -38,22 +41,54 @@ func Execute() error {
 	return rootCmd.Execute()
 }
 
+// exitError carries a process exit code. An empty message prints nothing.
+type exitError struct {
+	code int
+	msg  string
+}
+
+func (e *exitError) Error() string { return e.msg }
+
+// errNotFound mirrors `which`: exit 1 when a name cannot be resolved.
+var errNotFound = &exitError{code: 1}
+
 func newRootCmd() *cobra.Command {
 	opts := &rootOptions{}
 	cmd := &cobra.Command{
-		Use:   name,
+		Use:   name + " [name...]",
 		Short: short,
-		Args:  cobra.ArbitraryArgs,
+		Long: short + `.
+
+Resolve names the way your shell does: aliases, then functions, then
+executables on $PATH. Aliases and functions are read from the files and
+directories listed under [[sources]] in your config; with no sources
+configured, witch behaves like which.
+
+With a name and an exact match, witch prints the result and exits.
+With no name, or no exact match on a terminal, it opens an interactive list.`,
+		Args:          cobra.ArbitraryArgs,
+		SilenceUsage:  true,
+		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if opts.showVersion {
-				ver := resolvedVersion()
-				cmd.Printf("%s\n", ver)
+				cmd.Printf("%s\n", resolvedVersion())
 				return nil
 			}
-			// Interactive file manager will go here
-			return runInteractive(cmd, opts, args)
+			return runRoot(cmd, opts, args)
 		},
 	}
+
+	// @docs-flag-group
+	//
+	// 	name: Lookup
+	// 	description:
+	//
+	// 		Control which entries are printed and how.
+	//	flags: all, type, json, interactive
+	cmd.Flags().BoolVarP(&opts.all, "all", "a", false, "print all matches, including shadowed ones")
+	cmd.Flags().StringSliceVarP(&opts.types, "type", "t", nil, "only match these types: alias, function, executable (repeatable or comma-separated)")
+	cmd.Flags().BoolVar(&opts.json, "json", false, "print matches as JSON")
+	cmd.Flags().BoolVarP(&opts.interactive, "interactive", "i", false, "always open the interactive list")
 
 	// @docs-flag-group
 	//
@@ -88,307 +123,196 @@ func resolvedVersion() string {
 	return ver
 }
 
-func runInteractive(cmd *cobra.Command, opts *rootOptions, args []string) error {
+func loadConfig(path string) (domain.Config, error) {
 	cwd, err := os.Getwd()
 	if err != nil {
-		return fmt.Errorf("failed to get working directory: %w", err)
+		return domain.Config{}, fmt.Errorf("failed to get working directory: %w", err)
 	}
-
 	manager := config.NewManager(cwd)
-	var cfg domain.Config
-	if opts.configPath != "" {
-		cfg, err = manager.LoadWithOverride(opts.configPath)
-	} else {
-		cfg, err = manager.Load()
+	if path != "" {
+		return manager.LoadWithOverride(path)
 	}
-	if err != nil {
-		cfg = domain.DefaultConfig()
-	}
-
-	return runDirectoryListing(cwd, cfg)
+	return manager.Load()
 }
 
-func runDirectoryListing(cwd string, cfg domain.Config) error {
-	entries, err := os.ReadDir(cwd)
+func runRoot(cmd *cobra.Command, opts *rootOptions, args []string) error {
+	cfg, err := loadConfig(opts.configPath)
 	if err != nil {
-		return fmt.Errorf("failed to read directory: %w", err)
+		return err
+	}
+	types, err := parseTypes(opts.types)
+	if err != nil {
+		return err
 	}
 
-	items := make([]list.Item, 0, len(entries))
-	for _, entry := range entries {
-		info, err := entry.Info()
-		if err != nil {
-			continue
+	idx, warnings := sources.Collect(collectOptions(cfg))
+	for _, w := range warnings {
+		fmt.Fprintf(cmd.ErrOrStderr(), "%s: warning: %v\n", name, w)
+	}
+
+	stdout := cmd.OutOrStdout()
+	isTTY := tty.IsTerminalWriter(stdout)
+	all := filterTypes(idx.All(), types)
+
+	if opts.interactive {
+		return runPicker(cmd, cfg, opts, all, strings.Join(args, " "), len(args) > 0)
+	}
+
+	if len(args) == 0 {
+		if !opts.json && isTTY && cfg.InteractiveDefault {
+			return runPicker(cmd, cfg, opts, all, "", false)
 		}
-		items = append(items, fileItem{
-			name:    entry.Name(),
-			isDir:   entry.IsDir(),
-			modTime: info.ModTime(),
-		})
-	}
-
-	if len(items) == 0 {
-		fmt.Println("Directory is empty")
+		if !opts.all {
+			all = winners(all)
+		}
+		if opts.json {
+			return writeJSON(stdout, all)
+		}
+		writeList(stdout, all)
 		return nil
 	}
 
-	theme := ui.ThemeFromConfig(cfg)
-	delegate := ui.NewListDelegate(theme, ui.ListDelegateOptions{
+	var (
+		found   []domain.Entry
+		missing []string
+	)
+	for _, arg := range args {
+		matches := filterTypes(idx.Lookup(arg), types)
+		if len(matches) == 0 {
+			missing = append(missing, arg)
+			continue
+		}
+		if !opts.all {
+			matches = matches[:1]
+		}
+		found = append(found, matches...)
+	}
+
+	// A single unresolved name on a terminal opens the picker pre-filtered,
+	// as long as something fuzzy-matches it.
+	if len(args) == 1 && len(missing) == 1 && isTTY && !opts.json && cfg.InteractiveDefault && hasFuzzyMatch(all, args[0]) {
+		return runPicker(cmd, cfg, opts, all, args[0], true)
+	}
+
+	if opts.json {
+		if err := writeJSON(stdout, found); err != nil {
+			return err
+		}
+	} else {
+		for _, e := range found {
+			fmt.Fprintln(stdout, formatEntry(e))
+		}
+	}
+	for _, m := range missing {
+		fmt.Fprintf(cmd.ErrOrStderr(), "%s: %s not found\n", name, m)
+	}
+	if len(missing) > 0 {
+		return errNotFound
+	}
+	return nil
+}
+
+func collectOptions(cfg domain.Config) sources.Options {
+	opts := sources.Options{IndexPath: cfg.IndexPath, PathEnv: os.Getenv("PATH")}
+	for _, s := range cfg.Sources {
+		opts.Sources = append(opts.Sources, s.Path)
+	}
+	for _, i := range cfg.Ignore {
+		opts.Ignore = append(opts.Ignore, i.Path)
+	}
+	return opts
+}
+
+func runPicker(cmd *cobra.Command, cfg domain.Config, opts *rootOptions, entries []domain.Entry, filter string, searched bool) error {
+	if !opts.all {
+		entries = winners(entries)
+	}
+	if len(entries) == 0 {
+		return &exitError{code: 1, msg: fmt.Sprintf("%s: nothing to show (configure [[sources]] or enable index_path)", name)}
+	}
+	selected, err := ui.RunEntryPicker(entries, ui.ThemeFromConfig(cfg), ui.EntryPickerOptions{
+		Title:   name,
+		Filter:  filter,
 		Spacing: cfg.ListSpacing,
-	})
-
-	listModel := ui.NewListModel(items, delegate, 80, 20, theme)
-	listModel.Title = fmt.Sprintf("Directory: %s", cwd)
-	listModel.SetShowStatusBar(true)
-	listModel.SetFilteringEnabled(true)
-
-	model := directoryListModel{
-		list:       listModel,
-		theme:      theme,
-		responsive: ui.NewResponsiveManager(80),
-		cwd:        cwd,
+	}, tty.GetProgramOptions()...)
+	if err != nil {
+		return err
 	}
-
-	// Set initial keybindings based on initial screen size
-	model.list.AdditionalShortHelpKeys = model.getShortHelpKeys
-	model.list.AdditionalFullHelpKeys = model.allHelpKeys
-
-	p := tea.NewProgram(model, tea.WithoutSignalHandler())
-	if _, err := p.Run(); err != nil {
-		return fmt.Errorf("failed to run interactive list: %w", err)
+	if selected == nil {
+		if searched {
+			return errNotFound
+		}
+		return nil
 	}
-
+	if opts.json {
+		return writeJSON(cmd.OutOrStdout(), []domain.Entry{*selected})
+	}
+	fmt.Fprintln(cmd.OutOrStdout(), formatEntry(*selected))
 	return nil
 }
 
-type fileItem struct {
-	name    string
-	isDir   bool
-	modTime time.Time
-}
-
-func (f fileItem) Title() string {
-	if f.isDir {
-		return f.name + "/"
+func parseTypes(values []string) (map[domain.EntryType]bool, error) {
+	if len(values) == 0 {
+		return nil, nil
 	}
-	return f.name
-}
-
-func (f fileItem) Description() string {
-	return utils.TimeAgo(f.modTime)
-}
-
-func (f fileItem) FilterValue() string {
-	return f.name
-}
-
-type directoryListModel struct {
-	list          list.Model
-	theme         ui.Theme
-	responsive    *ui.ResponsiveManager
-	cwd           string
-	selected      string
-	message       string
-	confirmMode   bool
-	confirmModel  *ui.ConfirmationModel
-	pendingAction string
-	pendingItem   fileItem
-}
-
-// allHelpKeys returns the complete list of keybindings in priority order
-func (m directoryListModel) allHelpKeys() []key.Binding {
-	return []key.Binding{
-		key.NewBinding(
-			key.WithKeys("enter"),
-			key.WithHelp("enter", "view file/directory"),
-		),
-		key.NewBinding(
-			key.WithKeys("a"),
-			key.WithHelp("a", "add new file"),
-		),
-		key.NewBinding(
-			key.WithKeys("d"),
-			key.WithHelp("d", "delete file"),
-		),
-		key.NewBinding(
-			key.WithKeys("r"),
-			key.WithHelp("r", "rename file"),
-		),
-		key.NewBinding(
-			key.WithKeys("o"),
-			key.WithHelp("o", "open in editor"),
-		),
-	}
-}
-
-// getShortHelpKeys returns keybindings for short help based on screen size
-func (m directoryListModel) getShortHelpKeys() []key.Binding {
-	allKeys := m.allHelpKeys()
-
-	var splitAt int
-	switch m.responsive.Breakpoint() {
-	case ui.BreakpointXL:
-		splitAt = 3
-	case ui.BreakpointLG:
-		splitAt = 1
-	default:
-		splitAt = 1
-	}
-
-	return allKeys[:splitAt]
-}
-
-// getFullHelpKeys returns keybindings for full help
-func (m directoryListModel) getFullHelpKeys() []key.Binding {
-	allKeys := m.allHelpKeys()
-
-	// Determine split point based on breakpoint
-	var splitAt int
-	switch m.responsive.Breakpoint() {
-	case ui.BreakpointXS:
-		splitAt = 1 // Remaining keys after first
-	case ui.BreakpointSM:
-		splitAt = 2 // Remaining keys after first 2
-	case ui.BreakpointMD:
-		splitAt = 3 // Remaining keys after first 3
-	default:
-		// LG and XL: all shown in short, return empty for full
-		return []key.Binding{}
-	}
-
-	return allKeys[splitAt:]
-}
-
-func (m directoryListModel) Init() tea.Cmd {
-	return nil
-}
-
-func (m directoryListModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	// Handle confirmation dialog if active
-	if m.confirmMode && m.confirmModel != nil {
-		switch msg := msg.(type) {
-		case tea.KeyMsg:
-			updated, cmd := m.confirmModel.Update(msg)
-			if updatedConfirm, ok := updated.(ui.ConfirmationModel); ok {
-				m.confirmModel = &updatedConfirm
-				if cmd != nil {
-					if _, isQuit := cmd().(tea.QuitMsg); isQuit {
-						confirmed := m.confirmModel.ChoiceValue()
-						m.confirmMode = false
-						if confirmed {
-							return m.executeAction()
-						} else {
-							m.message = fmt.Sprintf("%s cancelled", m.pendingAction)
-							m.pendingAction = ""
-							return m, nil
-						}
-					}
-				}
-			}
-			return m, cmd
+	types := map[domain.EntryType]bool{}
+	for _, v := range values {
+		t, err := domain.ParseEntryType(v)
+		if err != nil {
+			return nil, err
 		}
-		return m, nil
+		types[t] = true
 	}
+	return types, nil
+}
 
-	switch msg := msg.(type) {
-	case tea.WindowSizeMsg:
-		// Update responsive manager with new width
-		m.responsive.SetWidth(msg.Width)
-
-		// Get responsive list dimensions
-		width, height := m.responsive.GetListDimensions(msg.Width, msg.Height)
-		m.list.SetSize(width, height)
-
-		// Update keybindings based on new screen size
-		m.list.AdditionalShortHelpKeys = m.getShortHelpKeys
-		return m, nil
-
-	case tea.KeyMsg:
-		switch msg.String() {
-		case "q", "esc", "ctrl+c":
-			return m, tea.Quit
-		case "enter":
-			// View file
-			if item, ok := m.list.SelectedItem().(fileItem); ok {
-				m.selected = item.name
-				if !item.isDir {
-					m.message = fmt.Sprintf("Viewing: %s", item.name)
-					// TODO: Implement file viewing
-				} else {
-					m.message = fmt.Sprintf("Directory: %s", item.name)
-				}
-			}
-		case "d":
-			// Delete file - show confirmation
-			if item, ok := m.list.SelectedItem().(fileItem); ok {
-				m.pendingAction = "Delete"
-				m.pendingItem = item
-				confirmModel := ui.NewConfirmationModel(
-					"Delete File",
-					fmt.Sprintf("Are you sure you want to delete '%s'?\nThis action cannot be undone.", item.name),
-					m.theme,
-				)
-				m.confirmModel = &confirmModel
-				m.confirmMode = true
-				return m, confirmModel.Init()
-			}
-		case "r":
-			// Rename file - show confirmation
-			if item, ok := m.list.SelectedItem().(fileItem); ok {
-				m.pendingAction = "Rename"
-				m.pendingItem = item
-				confirmModel := ui.NewConfirmationModel(
-					"Rename File",
-					fmt.Sprintf("Rename '%s'?", item.name),
-					m.theme,
-				)
-				m.confirmModel = &confirmModel
-				m.confirmMode = true
-				return m, confirmModel.Init()
-			}
-		case "o":
-			// Open file in editor
-			if item, ok := m.list.SelectedItem().(fileItem); ok {
-				m.message = fmt.Sprintf("Open: %s (not implemented)", item.name)
-				// TODO: Implement file opening
-			}
-		case "a":
-			// Add new file
-			m.message = "Add file (not implemented)"
-			// TODO: Implement file creation
+func filterTypes(entries []domain.Entry, types map[domain.EntryType]bool) []domain.Entry {
+	if len(types) == 0 {
+		return entries
+	}
+	out := make([]domain.Entry, 0, len(entries))
+	for _, e := range entries {
+		if types[e.Type] {
+			out = append(out, e)
 		}
 	}
-
-	var cmd tea.Cmd
-	m.list, cmd = m.list.Update(msg)
-	return m, cmd
+	return out
 }
 
-func (m directoryListModel) View() string {
-	// Show confirmation dialog if active
-	if m.confirmMode && m.confirmModel != nil {
-		return m.confirmModel.View()
+// winners keeps the first entry per name (suffix aliases are their own
+// namespace). Entries must be grouped by name with the winner first, as
+// returned by the index; this respects type filters, so `-t executable ls`
+// still shows the executable even when an alias shadows it.
+func winners(entries []domain.Entry) []domain.Entry {
+	seen := map[string]bool{}
+	out := make([]domain.Entry, 0, len(entries))
+	for _, e := range entries {
+		key := e.Name
+		if e.AliasKind == domain.AliasSuffix {
+			key = "suffix:" + key
+		}
+		if seen[key] {
+			continue
+		}
+		seen[key] = true
+		out = append(out, e)
 	}
-
-	listView := m.list.View()
-
-	// Add message if present
-	if m.message != "" {
-		listView = listView + "\n\n" + m.message
-	}
-
-	return m.responsive.AdaptiveFrameStyle(m.theme).Render(listView)
+	return out
 }
 
-func (m directoryListModel) executeAction() (tea.Model, tea.Cmd) {
-	switch m.pendingAction {
-	case "Delete":
-		// TODO: Implement actual file deletion
-		m.message = fmt.Sprintf("✓ Deleted: %s (stub - not actually deleted)", m.pendingItem.name)
-	case "Rename":
-		// TODO: Implement actual file renaming
-		m.message = fmt.Sprintf("✓ Renamed: %s (stub - not actually renamed)", m.pendingItem.name)
+func hasFuzzyMatch(entries []domain.Entry, term string) bool {
+	targets := make([]string, len(entries))
+	for i, e := range entries {
+		targets[i] = e.Name
 	}
-	m.pendingAction = ""
-	return m, nil
+	return len(list.DefaultFilter(term, targets)) > 0
+}
+
+// exitCode extracts the process exit code for err.
+func exitCode(err error) (int, string) {
+	var ee *exitError
+	if errors.As(err, &ee) {
+		return ee.code, ee.msg
+	}
+	return 1, err.Error()
 }

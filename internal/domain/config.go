@@ -21,6 +21,22 @@ type Config struct {
 	Border               string `toml:"border"`
 	InteractiveDefault   bool   `toml:"interactive_default"`
 	ListSpacing          string `toml:"list_spacing"`
+	// IndexPath controls whether executables on $PATH are indexed.
+	IndexPath bool `toml:"index_path"`
+	// Sources are files or directories parsed for aliases and functions.
+	Sources []Source `toml:"sources"`
+	// Ignore lists files, directories, or glob patterns to skip in sources.
+	Ignore []Ignore `toml:"ignore"`
+}
+
+// Source is a file or directory to parse for aliases and functions.
+type Source struct {
+	Path string `toml:"path"`
+}
+
+// Ignore is a file, directory, or glob pattern excluded from sources.
+type Ignore struct {
+	Path string `toml:"path"`
 }
 
 // DefaultConfig returns the default configuration values.
@@ -40,6 +56,7 @@ func DefaultConfig() Config {
 		Border:               "08",
 		InteractiveDefault:   true,
 		ListSpacing:          "space",
+		IndexPath:            true,
 	}
 }
 

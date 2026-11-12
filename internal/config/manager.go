@@ -2,6 +2,7 @@ package config
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -85,20 +86,23 @@ func (m *ManagerImpl) Exists() (bool, error) {
 }
 
 type partialConfig struct {
-	Editor               *string `toml:"editor"`
-	Primary              *string `toml:"primary"`
-	Secondary            *string `toml:"secondary"`
-	Headings             *string `toml:"headings"`
-	Text                 *string `toml:"text"`
-	TextHighlight        *string `toml:"text_highlight"`
-	DescriptionHighlight *string `toml:"description_highlight"`
-	Tags                 *string `toml:"tags"`
-	Flags                *string `toml:"flags"`
-	Muted                *string `toml:"muted"`
-	Accent               *string `toml:"accent"`
-	Border               *string `toml:"border"`
-	InteractiveDefault   *bool   `toml:"interactive_default"`
-	ListSpacing          *string `toml:"list_spacing"`
+	Editor               *string         `toml:"editor"`
+	Primary              *string         `toml:"primary"`
+	Secondary            *string         `toml:"secondary"`
+	Headings             *string         `toml:"headings"`
+	Text                 *string         `toml:"text"`
+	TextHighlight        *string         `toml:"text_highlight"`
+	DescriptionHighlight *string         `toml:"description_highlight"`
+	Tags                 *string         `toml:"tags"`
+	Flags                *string         `toml:"flags"`
+	Muted                *string         `toml:"muted"`
+	Accent               *string         `toml:"accent"`
+	Border               *string         `toml:"border"`
+	InteractiveDefault   *bool           `toml:"interactive_default"`
+	ListSpacing          *string         `toml:"list_spacing"`
+	IndexPath            *bool           `toml:"index_path"`
+	Sources              []domain.Source `toml:"sources"`
+	Ignore               []domain.Ignore `toml:"ignore"`
 }
 
 func readConfig(path string) (*partialConfig, error) {
@@ -111,7 +115,20 @@ func readConfig(path string) (*partialConfig, error) {
 	}
 	var partial partialConfig
 	if err := toml.Unmarshal(data, &partial); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("parse %s: %w", path, err)
+	}
+	base := filepath.Dir(path)
+	for i := range partial.Sources {
+		partial.Sources[i].Path = resolvePath(base, partial.Sources[i].Path)
+	}
+	for i := range partial.Ignore {
+		ignore := strings.TrimSpace(partial.Ignore[i].Path)
+		// Bare globs like "*.zwc" match base names anywhere; keep them as-is.
+		if strings.ContainsAny(ignore, "*?[") && !strings.Contains(ignore, "/") {
+			partial.Ignore[i].Path = ignore
+			continue
+		}
+		partial.Ignore[i].Path = resolvePath(base, ignore)
 	}
 	return &partial, nil
 }
@@ -159,6 +176,34 @@ func applyPartial(config *domain.Config, partial *partialConfig) {
 	if partial.ListSpacing != nil {
 		config.ListSpacing = *partial.ListSpacing
 	}
+	if partial.IndexPath != nil {
+		config.IndexPath = *partial.IndexPath
+	}
+	// Sources and ignores accumulate across config layers (global, then local).
+	for _, source := range partial.Sources {
+		if strings.TrimSpace(source.Path) != "" {
+			config.Sources = append(config.Sources, source)
+		}
+	}
+	for _, ignore := range partial.Ignore {
+		if strings.TrimSpace(ignore.Path) != "" {
+			config.Ignore = append(config.Ignore, ignore)
+		}
+	}
+}
+
+// resolvePath expands ~ and environment variables, and makes relative
+// paths relative to the directory of the config file that declared them.
+func resolvePath(base, value string) string {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return value
+	}
+	expanded := expandPath(value)
+	if !filepath.IsAbs(expanded) {
+		expanded = filepath.Join(base, expanded)
+	}
+	return filepath.Clean(expanded)
 }
 
 func expandPath(value string) string {

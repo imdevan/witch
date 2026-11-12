@@ -38,6 +38,22 @@ type Preview struct {
 	query    string
 	files    map[string][]string
 	readFile func(string) ([]string, error)
+	// helpEnabled shows man pages / --help for executables instead of the
+	// file; pages caches them by path.
+	helpEnabled bool
+	pages       map[string]helpState
+}
+
+// HelpPage is help text shown for an executable.
+type HelpPage struct {
+	// Source is the command that produced the text, e.g. "man ls".
+	Source string
+	Text   string
+}
+
+type helpState struct {
+	page HelpPage
+	err  error
 }
 
 // NewPreview creates an empty preview pane.
@@ -49,6 +65,7 @@ func NewPreview(theme Theme) Preview {
 		theme:    theme,
 		files:    map[string][]string{},
 		readFile: readTextLines,
+		pages:    map[string]helpState{},
 	}
 }
 
@@ -80,11 +97,47 @@ func (p *Preview) SetQuery(q string) {
 	if p.entry == nil {
 		return
 	}
-	if lines, err := p.lines(*p.entry); err == nil {
-		offset := p.viewport.YOffset
-		p.viewport.SetContent(p.renderLines(lines))
-		p.viewport.SetYOffset(offset)
+	offset := p.viewport.YOffset
+	p.render()
+	p.viewport.SetYOffset(offset)
+}
+
+// EnableHelp makes executables show their man page or --help output
+// (supplied with SetHelp) instead of the file.
+func (p *Preview) EnableHelp() {
+	p.helpEnabled = true
+	p.render()
+}
+
+// NeedsHelp returns the path of the previewed executable when its help
+// hasn't been loaded yet.
+func (p Preview) NeedsHelp() (string, bool) {
+	if !p.helpEnabled || p.entry == nil || p.entry.Type != domain.TypeExecutable {
+		return "", false
 	}
+	_, ok := p.pages[p.entry.File]
+	return p.entry.File, !ok
+}
+
+// SetHelp stores the help for the executable at path. On error the preview
+// falls back to the file (scripts) or file details (binaries).
+func (p *Preview) SetHelp(path string, page HelpPage, err error) {
+	p.pages[path] = helpState{page: page, err: err}
+	if p.entry != nil && p.entry.File == path {
+		p.render()
+	}
+}
+
+// Width is the pane width.
+func (p Preview) Width() int { return p.width }
+
+// help returns the loaded help for e, if any.
+func (p Preview) help(e domain.Entry) (state helpState, loaded, applies bool) {
+	if !p.helpEnabled || e.Type != domain.TypeExecutable {
+		return helpState{}, false, false
+	}
+	state, loaded = p.pages[e.File]
+	return state, loaded, true
 }
 
 // Entry returns the entry being previewed.
@@ -127,6 +180,9 @@ func (p Preview) header() string {
 	if e.Shadowed {
 		title += lipgloss.NewStyle().Foreground(p.theme.Muted).Render("  shadowed")
 	}
+	if state, loaded, ok := p.help(*e); ok && loaded && state.err == nil {
+		title += lipgloss.NewStyle().Foreground(p.theme.Muted).Render("  " + state.page.Source)
+	}
 	location := utils.DisplayPath(e.Location())
 	if e.Target != "" {
 		location += " → " + utils.DisplayPath(e.Target)
@@ -146,6 +202,20 @@ func (p *Preview) render() {
 		return
 	}
 	e := *p.entry
+	if state, loaded, ok := p.help(e); ok {
+		switch {
+		case !loaded:
+			p.viewport.SetContent(lipgloss.NewStyle().Foreground(p.theme.Muted).Render("loading help…"))
+			p.viewport.GotoTop()
+			return
+		case state.err == nil:
+			p.viewport.SetContent(p.renderHelp(state.page.Text))
+			p.viewport.SetXOffset(0)
+			p.viewport.GotoTop()
+			return
+		}
+		// No man page or --help: show the file as before.
+	}
 	lines, err := p.lines(e)
 	if err != nil {
 		p.viewport.SetContent(p.details(e, err))
@@ -209,6 +279,18 @@ func (p Preview) renderLines(lines []string) string {
 		}
 	}
 	return b.String()
+}
+
+// renderHelp renders help text with the entry name and search highlighted.
+func (p Preview) renderHelp(text string) string {
+	base := lipgloss.NewStyle().Foreground(p.theme.Text)
+	match := lipgloss.NewStyle().Background(p.theme.Highlight).Foreground(lipgloss.Color("0"))
+	lines := strings.Split(text, "\n")
+	for i, line := range lines {
+		line = strings.ReplaceAll(line, "\t", strings.Repeat(" ", tabWidth))
+		lines[i] = styleMatches(line, p.entry.Name, p.query, base, match)
+	}
+	return strings.Join(lines, "\n")
 }
 
 // styleMatches renders line in base, with occurrences of name (as a whole

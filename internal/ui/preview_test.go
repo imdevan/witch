@@ -159,3 +159,50 @@ func previewLine(t *testing.T, p Preview, n int) string {
 	t.Fatalf("line %d not visible", n)
 	return ""
 }
+
+func TestPreviewShowsExecutableHelp(t *testing.T) {
+	entries := fixtureEntries(t)
+	p := NewPreview(testTheme())
+	p.SetSize(60, 15)
+	p.EnableHelp()
+	p.SetEntry(&entries[2])
+
+	if path, needed := p.NeedsHelp(); !needed || path != entries[2].File {
+		t.Fatalf("NeedsHelp() = %q, %v", path, needed)
+	}
+	if view := ansi.Strip(p.View()); !strings.Contains(view, "loading help") {
+		t.Errorf("expected a loading state:\n%s", view)
+	}
+
+	p.SetHelp(entries[2].File, HelpPage{Source: "man tool", Text: "NAME\n\ttool - does things"}, nil)
+	view := ansi.Strip(p.View())
+	for _, want := range []string{"man tool", "NAME", "    tool - does things"} {
+		if !strings.Contains(view, want) {
+			t.Errorf("help preview missing %q:\n%s", want, view)
+		}
+	}
+	if _, needed := p.NeedsHelp(); needed {
+		t.Error("help should be cached")
+	}
+
+	// Aliases and functions keep the file preview.
+	p.SetEntry(&entries[0])
+	if _, needed := p.NeedsHelp(); needed {
+		t.Error("aliases should not need help")
+	}
+	if view := ansi.Strip(p.View()); !strings.Contains(view, `40 ▌alias asdf="cowsay 'hi'"`) {
+		t.Errorf("alias preview changed:\n%s", view)
+	}
+}
+
+func TestPreviewHelpErrorFallsBack(t *testing.T) {
+	entries := fixtureEntries(t)
+	p := NewPreview(testTheme())
+	p.SetSize(60, 15)
+	p.EnableHelp()
+	p.SetEntry(&entries[2])
+	p.SetHelp(entries[2].File, HelpPage{}, fmt.Errorf("no man page or --help output"))
+	if view := ansi.Strip(p.View()); !strings.Contains(view, "binary file, not shown") {
+		t.Errorf("expected the file details fallback:\n%s", view)
+	}
+}

@@ -3,6 +3,7 @@ package ui
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/key"
@@ -45,6 +46,24 @@ type BrowserOptions struct {
 	// Fullscreen renders on the alternate screen using the whole terminal
 	// pane instead of inline below the prompt.
 	Fullscreen bool
+	// Help looks up the man page or --help output for an executable,
+	// formatted for width columns. It runs off the UI goroutine. Nil keeps
+	// the file preview for executables.
+	Help func(name, path string, width int) (HelpPage, error)
+}
+
+// helpDelay is how long the cursor must rest on an executable before its
+// help is looked up, so scrolling past binaries doesn't run lookups.
+var helpDelay = 150 * time.Millisecond
+
+// helpTickMsg fires helpDelay after an executable was selected.
+type helpTickMsg struct{ path string }
+
+// helpMsg carries a finished help lookup.
+type helpMsg struct {
+	path string
+	page HelpPage
+	err  error
 }
 
 // browserFocus is where keystrokes go.
@@ -126,6 +145,9 @@ type browserModel struct {
 	previewMode bool
 	status      string
 	copy        func(string) error
+	helpFn      func(name, path string, width int) (HelpPage, error)
+	// helpPending is the path whose help is waiting or loading.
+	helpPending string
 	result      BrowserResult
 	quitting    bool
 }
@@ -158,6 +180,10 @@ func newBrowserModel(entries []domain.Entry, theme Theme, opts BrowserOptions) b
 		maxHeight:  opts.MaxHeight,
 		fullscreen: opts.Fullscreen,
 		copy:       opts.Copy,
+		helpFn:     opts.Help,
+	}
+	if opts.Help != nil {
+		m.preview.EnableHelp()
 	}
 	if m.maxHeight <= 0 {
 		m.maxHeight = 40
@@ -198,7 +224,37 @@ func newBrowserModel(entries []domain.Entry, theme Theme, opts BrowserOptions) b
 	return m
 }
 
-func (m browserModel) Init() tea.Cmd { return textinput.Blink }
+func (m browserModel) Init() tea.Cmd {
+	_, cmd := m.requestHelp()
+	return tea.Batch(textinput.Blink, cmd)
+}
+
+// requestHelp schedules a help lookup for the previewed executable once the
+// cursor has rested on it for helpDelay.
+func (m browserModel) requestHelp() (browserModel, tea.Cmd) {
+	if m.helpFn == nil {
+		return m, nil
+	}
+	path, needed := m.preview.NeedsHelp()
+	if !needed || path == m.helpPending {
+		return m, nil
+	}
+	m.helpPending = path
+	return m, tea.Tick(helpDelay, func(time.Time) tea.Msg { return helpTickMsg{path: path} })
+}
+
+// loadHelp runs the lookup if path is still selected.
+func (m browserModel) loadHelp(path string) tea.Cmd {
+	if current, needed := m.preview.NeedsHelp(); !needed || current != path {
+		return nil
+	}
+	e := m.preview.Entry()
+	name, width, fn := e.Name, m.preview.Width(), m.helpFn
+	return func() tea.Msg {
+		page, err := fn(name, path, width)
+		return helpMsg{path: path, page: page, err: err}
+	}
+}
 
 func (m browserModel) split() bool { return ShouldSplit(m.responsive.Breakpoint()) }
 
@@ -277,6 +333,31 @@ func (m *browserModel) setFocus(f browserFocus) {
 }
 
 func (m browserModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	switch msg := msg.(type) {
+	case helpTickMsg:
+		cmd := m.loadHelp(msg.path)
+		if cmd == nil && m.helpPending == msg.path {
+			// Moved on before the delay; allow a new request later.
+			m.helpPending = ""
+		}
+		return m, cmd
+	case helpMsg:
+		m.preview.SetHelp(msg.path, msg.page, msg.err)
+		if m.helpPending == msg.path {
+			m.helpPending = ""
+		}
+		next, cmd := m.requestHelp()
+		return next, cmd
+	}
+	model, cmd := m.update(msg)
+	if bm, ok := model.(browserModel); ok && !bm.quitting {
+		next, helpCmd := bm.requestHelp()
+		return next, tea.Batch(cmd, helpCmd)
+	}
+	return model, cmd
+}
+
+func (m browserModel) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		m.resize(msg.Width, msg.Height)

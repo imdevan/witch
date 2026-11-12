@@ -476,3 +476,40 @@ func TestBrowserFullscreenFillsTerminal(t *testing.T) {
 		t.Errorf("inline should leave the last row for the prompt, got %d of 20", got)
 	}
 }
+
+func TestBrowserLoadsExecutableHelp(t *testing.T) {
+	entries := fixtureEntries(t)
+	calls := 0
+	help := func(name, path string, width int) (HelpPage, error) {
+		calls++
+		if name != "tool" || width <= 0 {
+			t.Errorf("help(%q, %q, %d)", name, path, width)
+		}
+		return HelpPage{Source: "man tool", Text: "TOOL(1)  usage text"}, nil
+	}
+	m := sized(newBrowserModel(entries, testTheme(), BrowserOptions{Help: help}), 120, 30)
+	m = typeText(m, "tool").(browserModel)
+	if m.helpPending != entries[2].File {
+		t.Fatalf("expected a pending help request, got %q", m.helpPending)
+	}
+
+	// Moving away before the delay cancels the lookup.
+	away := typeText(press(m, "backspace", "backspace", "backspace", "backspace"), "asdf").(browserModel)
+	next, cmd := away.Update(helpTickMsg{path: entries[2].File})
+	if cmd != nil || calls != 0 {
+		t.Fatal("lookup should not run once the executable is no longer selected")
+	}
+	if next.(browserModel).helpPending != "" {
+		t.Error("cancelled request should be cleared")
+	}
+
+	next, cmd = m.Update(helpTickMsg{path: entries[2].File})
+	if cmd == nil {
+		t.Fatal("expected a lookup command")
+	}
+	next, _ = next.Update(cmd())
+	view := ansi.Strip(next.View())
+	if calls != 1 || !strings.Contains(view, "TOOL(1)  usage text") || !strings.Contains(view, "man tool") {
+		t.Errorf("calls = %d, view:\n%s", calls, view)
+	}
+}

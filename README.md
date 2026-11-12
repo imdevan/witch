@@ -84,7 +84,13 @@ At 80 columns or wider, the list is on the left and a preview of the selected en
 
 In the preview, every whole-word occurrence of the entry's name is highlighted, and so is your search term (case-insensitive) when it differs from the name. Set the color with `highlight` in your config.
 
-Executables that are scripts are previewed as text. Binaries show their path, symlink target, mode, and size.
+Executables show their help instead of the file: the man page (`man <name>`, formatted to the preview width) or, if there is none, the program's `--help` output. The source of the text, e.g. `man ls` or `tool --help`, is shown next to the name. To keep browsing safe and fast:
+
+- `--help` only runs when the file contains the text `--help`, so scripts that ignore their arguments are never run by accident.
+- It runs with no input, detached from the terminal, with `NO_COLOR=1`. It's stopped if it takes longer than 2 seconds.
+- Lookups start once the cursor has rested on an executable briefly (150ms), and results are cached for the session.
+
+When an executable has neither, scripts are previewed as text and binaries show their path, symlink target, mode, and size. Aliases and functions always preview their defining file.
 
 The browser opens with the search focused: just type to filter (fuzzy), and the list and preview follow each keystroke. The search is pre-filled with the name you passed. A line under the search shows the type filter (`all aliases funcs bin`, current one emphasized) and the match count.
 

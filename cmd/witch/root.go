@@ -12,6 +12,7 @@ import (
 
 	"github.com/imdevan/witch/internal/adapters/clipboard"
 	"github.com/imdevan/witch/internal/adapters/editor"
+	"github.com/imdevan/witch/internal/adapters/manual"
 	"github.com/imdevan/witch/internal/adapters/tty"
 	"github.com/imdevan/witch/internal/config"
 	"github.com/imdevan/witch/internal/domain"
@@ -267,11 +268,19 @@ func runPicker(cmd *cobra.Command, cfg domain.Config, opts *rootOptions, entries
 		Spacing:    cfg.ListSpacing,
 		Copy:       clip.WriteText,
 		Fullscreen: cfg.Fullscreen,
+		Help:       executableHelp,
 	}, tty.GetProgramOptions()...)
 	if err != nil {
 		return err
 	}
 	return handleSelection(cmd, cfg, opts, result, searched)
+}
+
+// executableHelp shows an executable's man page, or its --help output when
+// it has none.
+func executableHelp(name, path string, width int) (ui.HelpPage, error) {
+	page, err := manual.Lookup(name, path, width)
+	return ui.HelpPage{Source: page.Source, Text: page.Text}, err
 }
 
 // handleSelection acts on what the user chose in the browser. Enter runs

@@ -41,6 +41,11 @@
 - [x] 3.4 Exit code 1 when nothing found (match `which`)
 - [x] 3.5 Update `README.md`, `example-config.toml`, `config_init.go` for new flags and `[[sources]]`
 - [x] 3.6 cmd tests for non-interactive output
+- [x] 3.7 add -o/--open flag to open the alias file at the given location of the alias
+  - [x] 3.7.1 `-o/--open` opens the winning alias/function's file at its line via the editor adapter (`editor` config, then `$VISUAL`/`$EDITOR`)
+  - [x] 3.7.2 Respects `-t`; works from the picker (`witch -o`, or a fuzzy miss on a TTY) by opening the selection
+  - [x] 3.7.3 Errors: executables (no definition line), more than one name, `--json`; not found exits 1
+  - [x] 3.7.4 cmd tests with a stubbed editor; README/CONFIG docs updated
 
 ## Feature 4: Split UI
 - [ ] 4.1 Split layout component in `internal/ui/split.go`

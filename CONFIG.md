@@ -32,6 +32,7 @@ Ignore patterns:
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `editor` | string | `nvim` | Editor used by `witch config` and `witch -o` (falls back to `$VISUAL` / `$EDITOR` when empty) |
+| `enter_action` | string | `execute` | What `enter` does in the interactive browser: `execute` runs the selected alias, function, or executable (see [shell integration](README.md#shell-integration)); `print` prints it like `witch <name>` |
 | `interactive_default` | bool | `true` | On a terminal, open the interactive list when no name is given or no name matches exactly |
 | `list_spacing` | string | `space` | List density: `compact` (title only), `tight` (title + description, no margin), `space` (with spacing) |
 
@@ -63,6 +64,10 @@ editor = "nvim"
 # CLI behavior
 # Open the interactive list when run with no name (or no exact match) on a terminal.
 interactive_default = true
+
+# What enter does in the interactive browser: "execute" runs the selection
+# (in your current shell with `eval "$(witch init zsh)"`), "print" prints it like witch <name>.
+enter_action = "execute"
 
 # Index executables on $PATH (like which). Set false to only search sources.
 index_path = true

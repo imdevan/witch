@@ -49,6 +49,7 @@ witch                        # browse everything interactively
 witch -i <query>             # always open the interactive list, pre-filtered
 witch -o <name>              # open the defining file at the alias/function's line
 witch -o                     # pick an entry interactively, then open it
+witch init zsh               # print shell integration (see below)
 ```
 
 ### Flags
@@ -91,7 +92,7 @@ Press `esc` or `↓` to move into the list to scroll and use single-key actions;
 
 | Key | Search focused | List focused |
 |-----|----------------|--------------|
-| `enter` | Print the top/selected match and exit | Print the selection and exit |
+| `enter` | Run the top/selected match (see [Shell integration](#shell-integration)) | Run the selection |
 | typing | Filter the list | — |
 | `esc`, `↓` | Move to the list | — |
 | `/`, `esc` | — | Back to the search (`↑` on the first item too) |
@@ -105,9 +106,35 @@ Press `esc` or `↓` to move into the list to scroll and use single-key actions;
 | `q` | — | Quit |
 | `ctrl+c` | Quit | Quit |
 
-On narrow terminals `enter` opens a full-width preview first; there, `enter` prints, `esc` goes back, and `j`/`k` scroll.
+On narrow terminals `enter` opens a full-width preview first; there, `enter` runs the selection, `esc` goes back, and `j`/`k` scroll.
 
 The browser is inline, so it draws below your prompt and leaves only the printed result behind when it exits.
+
+### Shell integration
+
+Pressing `enter` in the browser runs the selected alias, function, or executable. witch is a separate process, so to run aliases and functions in *your* shell (and have things like `cd` stick), add the wrapper to your rc file:
+
+```bash
+# ~/.zshrc
+eval "$(witch init zsh)"
+
+# ~/.bashrc
+eval "$(witch init bash)"
+
+# ~/.config/fish/config.fish
+witch init fish | source
+```
+
+The wrapper hands witch a temp file through `WITCH_CMD_FILE`. Only an interactive selection writes to it, and the wrapper then adds that command to your history (zsh/bash) and `eval`s it. Everything else is untouched: `witch <name>` output, exit codes, and `$(witch ...)` behave exactly as without the wrapper.
+
+Without the wrapper, witch runs the selection in an interactive subshell (`$SHELL -ic <name>`), so aliases and functions from your rc still resolve, but `cd` and exported variables don't carry back.
+
+Details:
+
+- Executables run by path, so the one you picked runs even if an alias shadows it.
+- Global (`-g`) and suffix (`-s`) aliases aren't commands on their own, so `enter` prints their definition instead.
+- `--json` and `-o` keep their meaning: `enter` prints JSON or opens the file.
+- Set `enter_action = "print"` to have `enter` print the selection (like `witch <name>`) instead of running it.
 
 ### Precedence
 
@@ -119,7 +146,7 @@ Matches for the same name are ordered the way your shell resolves them:
 
 Suffix aliases (`alias -s md=nvim`) apply only to file names, so they never shadow a command named `md`.
 
-Names of subcommands (`config`, `completion`) run those subcommands. To look one up, run `witch -t executable config`.
+Names of subcommands (`config`, `completion`, `init`) run those subcommands. To look one up, run `witch -t executable config`.
 
 ## Configuration
 
@@ -144,6 +171,7 @@ path = "*.zwc"          # a glob without a slash matches file names anywhere
 | `[[ignore]] path` | string | none | File, directory, or glob (`*`, `?`, `[...]`, `**`) to skip inside sources |
 | `index_path` | bool | `true` | Index executables on `$PATH` |
 | `interactive_default` | bool | `true` | Open the interactive list when no name is given (or none matches) on a terminal |
+| `enter_action` | string | `execute` | `enter` in the browser runs the selection (`execute`) or prints it (`print`) |
 | `editor` | string | `nvim` | Editor used by `witch config` and `witch -o` |
 | `list_spacing` | string | `space` | List density: `compact`, `tight`, `space` |
 | `highlight` | string | `03` | Background color for the name and search term in the preview |

@@ -52,6 +52,7 @@ Colors support named, numeric, or hex values (e.g., `7`, `13`, `"#ff8800"`).
 | `accent` | `13` | Accent (fallback for `tags`) |
 | `muted` | `08` | Muted text |
 | `border` | `08` | Borders |
+| `highlight` | `03` | Background for the entry name and search term in the preview |
 
 ## Example Configuration
 
@@ -83,6 +84,8 @@ flags = "12"
 accent = "13"
 muted = "08"
 border = "08"
+# Background for the entry name and search term in the preview
+highlight = "03"
 
 # Sources
 # Shell files or directories to parse for aliases and functions.

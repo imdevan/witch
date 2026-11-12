@@ -35,7 +35,7 @@ witch: nope not found
 - Treats a trailing `# comment` on an alias, or the comment above a function, as its description.
 - Shows the file, line and source of every alias and function definition.
 - Like `which -a`, `--all` shows every match, with shadowed entries after the winner.
-- Opens an inline, fuzzy-filterable [Bubble Tea](https://github.com/charmbracelet/bubbletea) list when you run `witch` with no name, or when a name has no exact match.
+- Opens an inline, fuzzy-filterable [Bubble Tea](https://github.com/charmbracelet/bubbletea) browser when you run `witch` with no name, or when a name has no exact match. On wide terminals the list sits next to a preview of the defining file, scrolled to the definition with its lines highlighted.
 - `--json` output for scripts and `fzf` pipelines.
 
 ## Usage
@@ -76,6 +76,27 @@ witch -o                     # pick an entry interactively, then open it
 Set `interactive_default = false` to never open the interactive list unless you pass `-i`.
 
 Executables print their path, as `which` does. Aliases and functions print where they are defined (`file:line`, with your home directory shortened to `~`) followed by their source: the full `alias` line, or the whole function body. `--json` includes the same information as separate fields (`file`, `line`, `definition`).
+
+### Interactive browser
+
+At 80 columns or wider, the list is on the left and a preview of the selected entry's file is on the right. The definition is highlighted and scrolled into view. Narrower terminals show only the list, and `enter` opens a full-width preview (`esc` goes back).
+
+Executables that are scripts are previewed as text. Binaries show their path, symlink target, mode, and size.
+
+| Key | Action |
+|-----|--------|
+| `enter` | Print the selection and exit (same output as `witch <name>`). On narrow terminals, opens the preview first |
+| `/` | Fuzzy filter (pre-filled with the name you searched) |
+| `tab` / `shift+tab` | Cycle the type filter: all → aliases → functions → executables |
+| `o` | Open the defining file at the definition's line in your `editor` |
+| `y` | Copy the definition (an executable's path) |
+| `Y` | Copy `path:line` |
+| `c` | Copy the name |
+| `J` / `K`, `ctrl+d` / `ctrl+u` | Scroll the preview |
+| `?` | Toggle full help |
+| `q`, `esc` | Quit (`esc` clears an active filter first) |
+
+The browser is inline, so it draws below your prompt and leaves only the printed result behind when it exits.
 
 ### Precedence
 

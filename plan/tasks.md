@@ -99,7 +99,13 @@
 - [x] 5.4 Help keys per focus (search vs list); tests for focus switching, typing, type line, chords; README key table updated
 
 ## Feature 6: show bin file help instead of source preview
-- [ ] 6.1 for bin files / alias show their help menu instead of a file preview
+- [x] 6.1 for bin files show their help menu instead of a file preview (aliases and functions keep the file preview)
+  - [x] 6.1.1 `internal/adapters/manual`: man page first (`MANPAGER=cat`, `MANWIDTH` = preview width), falling back to `<path> --help`; output cleaned of ANSI escapes and man overstrikes
+  - [x] 6.1.2 `--help` only runs when the file contains `--help`; no stdin, own session (no TTY access), `NO_COLOR=1`, 2s timeout kills the process group, output capped at 512 KiB
+  - [x] 6.1.3 Preview shows "loading help…", then the help text with the name/search highlighted and its source (`man ls` / `tool --help`) in the header; cached per path
+  - [x] 6.1.4 Browser looks up help asynchronously after the cursor rests on an executable for 150ms, so scrolling past binaries doesn't run lookups
+  - [x] 6.1.5 No man page or `--help`: falls back to the existing file preview (scripts) or file details (binaries)
+  - [x] 6.1.6 Tests for lookup order, skip/timeout safety, cleaning, preview states, and the debounced browser flow; README updated
 
 ## Feature 7: Release
 - [x] 7.1 Docs site via `just docs-generate`

@@ -59,7 +59,6 @@
   - [x] 4.2.2 Type badges colored from theme (alias `tags`, function `flags`, executable `primary`, shadowed `muted`) via a delegate wrapping `list.DefaultDelegate`
   - [x] 4.2.3 Fuzzy filtering (bubbles list built-in), pre-filled with CLI arg
   - [x] 4.2.4 Type filter keys: `tab`/`shift+tab` cycle all/alias/function/executable; list title shows the active type
-    - [ ] 4.2.4.1 bookmark type (no bookmark source exists yet; see open questions)
 - [x] 4.3 Preview pane (bubbles `viewport`)
   - [x] 4.3.1 preview pane should show file preview of given alias / function
   - [x] 4.3.2 the user should see the contents of the file, with the alias / function highlighted so that it is clear what alias the user has searched and where it is in the file
@@ -99,6 +98,9 @@
   - [x] 5.3.3 Match count (`visible/total`) right-aligned on the same line when it fits
 - [x] 5.4 Help keys per focus (search vs list); tests for focus switching, typing, type line, chords; README key table updated
 
-## Feature 6: Release
-- [ ] 6.1 Docs site via `just docs-generate`
-- [ ] 6.2 `just release` / homebrew
+## Feature 6: show bin file help instead of source preview
+- [ ] 6.1 for bin files / alias show their help menu instead of a file preview
+
+## Feature 7: Release
+- [x] 7.1 Docs site via `just docs-generate`
+- [ ] 7.2 `just release` / homebrew

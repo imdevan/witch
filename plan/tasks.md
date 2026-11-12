@@ -48,24 +48,32 @@
   - [x] 3.7.4 cmd tests with a stubbed editor; README/CONFIG docs updated
 
 ## Feature 4: Split UI
-- [ ] 4.1 Split layout component in `internal/ui/split.go`
-  - [ ] 4.1.1 List on left, preview viewport on right (lipgloss `JoinHorizontal`)
-  - [ ] 4.1.2 Split only at `BreakpointLG`+; below that, list only + enter opens preview
-  - [ ] 4.1.3 Inline (not alt-screen) per AGENTS.md
-- [ ] 4.2 List pane
-  - [ ] 4.2.1 Reuse `ui.NewListModel` / delegate; title = name, description = type + description
-  - [ ] 4.2.2 Type badges colored from theme (`tags`, `flags`, `accent`)
-  - [ ] 4.2.3 Fuzzy filtering (bubbles list built-in), pre-filled with CLI arg
-  - [ ] 4.2.4 Type filter keys (e.g. `tab` to cycle all/alias/function/bookmark/bin)
-- [ ] 4.3 Preview pane (bubbles `viewport`)
-  - [ ] 4.3.1 preview pane should show file preview of given alias / function
-  - [ ] 4.3.2 the user should see the contents of the file, with the alias / function highlighted so that it is clear what alias the user has searched and where it is in the file
-
-- [ ] 4.4 Actions
-  - [ ] 4.4.1 `enter` print selection and exit (shell-friendly)
-  - [ ] 4.4.2 `y` copy name/path/definition (clipboard adapter)
-  - [ ] 4.4.3 `o` open defining file at line in editor (editor adapter)
-- [ ] 4.5 Responsive help keys, matching template patterns
+- [x] 4.1 Split layout component in `internal/ui/split.go`
+  - [x] 4.1.1 List on left, preview viewport on right (lipgloss `JoinHorizontal`)
+  - [x] 4.1.2 Split only at `BreakpointLG`+; below that, list only + enter opens preview
+  - [x] 4.1.3 Inline (not alt-screen) per AGENTS.md
+  - [x] 4.1.4 Rounded bordered panes; left pane 40% of width clamped to 30–60 cols; height capped at 40 lines / terminal height
+  - [x] 4.1.5 Browser model (`internal/ui/browser.go`) replaces the Feature 3 single-list picker; wired into `witch`, `-i`, `-o`, and fuzzy misses
+- [x] 4.2 List pane
+  - [x] 4.2.1 Reuse `ui.NewListModel` / delegate; title = name, description = type + description
+  - [x] 4.2.2 Type badges colored from theme (alias `tags`, function `flags`, executable `primary`, shadowed `muted`) via a delegate wrapping `list.DefaultDelegate`
+  - [x] 4.2.3 Fuzzy filtering (bubbles list built-in), pre-filled with CLI arg
+  - [x] 4.2.4 Type filter keys: `tab`/`shift+tab` cycle all/alias/function/executable; list title shows the active type
+    - [ ] 4.2.4.1 bookmark type (no bookmark source exists yet; see open questions)
+- [x] 4.3 Preview pane (bubbles `viewport`)
+  - [x] 4.3.1 preview pane should show file preview of given alias / function
+  - [x] 4.3.2 the user should see the contents of the file, with the alias / function highlighted so that it is clear what alias the user has searched and where it is in the file
+  - [x] 4.3.3 Header with name, type badge, `~/path:line`, symlink target, shadowed marker
+  - [x] 4.3.4 Line-number gutter; definition lines marked `▌` and highlighted; scrolled into view with context above
+  - [x] 4.3.5 Executables: scripts previewed as text; binaries show path/target/mode/size; missing files show "file not found"
+  - [x] 4.3.6 File contents cached per path; `J`/`K`, `ctrl+d`/`ctrl+u` scroll; horizontal scroll via viewport
+- [x] 4.4 Actions
+  - [x] 4.4.1 `enter` print selection and exit (shell-friendly)
+  - [x] 4.4.2 `y` copy name/path/definition (clipboard adapter): `y` definition (executable path), `Y` path:line, `c` name; status line confirms
+  - [x] 4.4.3 `o` open defining file at line in editor (editor adapter); executables show a status instead
+- [x] 4.5 Responsive help keys, matching template patterns
+  - [x] 4.5.1 bubbles `help` short view trimmed by breakpoint (XS 2, SM 3, MD 4, LG+ all), `?` always kept; `?` toggles full help and re-lays out panes
+- [x] 4.6 Tests: split layout sizing, preview highlight/scroll/cache/binary, browser keys (split vs narrow, enter, quit, prefilled filter, type cycle, copy, open, help)
 
 ## Feature 5: Release
 - [ ] 5.1 Docs site via `just docs-generate`

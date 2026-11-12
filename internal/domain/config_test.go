@@ -84,6 +84,12 @@ func TestDefaultConfig(t *testing.T) {
 		}
 	})
 
+	t.Run("enter executes by default", func(t *testing.T) {
+		if cfg.EnterAction != EnterExecute {
+			t.Errorf("DefaultConfig().EnterAction = %q, want %q", cfg.EnterAction, EnterExecute)
+		}
+	})
+
 	t.Run("has list spacing set", func(t *testing.T) {
 		if cfg.ListSpacing == "" {
 			t.Error("DefaultConfig().ListSpacing should not be empty")

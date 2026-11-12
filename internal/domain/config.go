@@ -23,6 +23,9 @@ type Config struct {
 	Highlight          string `toml:"highlight"`
 	InteractiveDefault bool   `toml:"interactive_default"`
 	ListSpacing        string `toml:"list_spacing"`
+	// EnterAction is what enter does in the interactive browser:
+	// "execute" (run the selection) or "print" (print it, like witch <name>).
+	EnterAction string `toml:"enter_action"`
 	// IndexPath controls whether executables on $PATH are indexed.
 	IndexPath bool `toml:"index_path"`
 	// Sources are files or directories parsed for aliases and functions.
@@ -30,6 +33,12 @@ type Config struct {
 	// Ignore lists files, directories, or glob patterns to skip in sources.
 	Ignore []Ignore `toml:"ignore"`
 }
+
+// Enter actions for the interactive browser.
+const (
+	EnterExecute = "execute"
+	EnterPrint   = "print"
+)
 
 // Source is a file or directory to parse for aliases and functions.
 type Source struct {
@@ -59,6 +68,7 @@ func DefaultConfig() Config {
 		Highlight:            "03",
 		InteractiveDefault:   true,
 		ListSpacing:          "space",
+		EnterAction:          EnterExecute,
 		IndexPath:            true,
 	}
 }

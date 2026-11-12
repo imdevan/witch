@@ -101,6 +101,7 @@ type partialConfig struct {
 	Highlight            *string         `toml:"highlight"`
 	InteractiveDefault   *bool           `toml:"interactive_default"`
 	ListSpacing          *string         `toml:"list_spacing"`
+	EnterAction          *string         `toml:"enter_action"`
 	IndexPath            *bool           `toml:"index_path"`
 	Sources              []domain.Source `toml:"sources"`
 	Ignore               []domain.Ignore `toml:"ignore"`
@@ -179,6 +180,9 @@ func applyPartial(config *domain.Config, partial *partialConfig) {
 	}
 	if partial.ListSpacing != nil {
 		config.ListSpacing = *partial.ListSpacing
+	}
+	if partial.EnterAction != nil {
+		config.EnterAction = *partial.EnterAction
 	}
 	if partial.IndexPath != nil {
 		config.IndexPath = *partial.IndexPath

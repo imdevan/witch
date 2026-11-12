@@ -117,6 +117,7 @@ With no name, or no exact match on a terminal, it opens an interactive list.`,
 
 	cmd.AddCommand(newConfigCmd())
 	cmd.AddCommand(newCompletionCmd())
+	cmd.AddCommand(newInitCmd())
 
 	return cmd
 }
@@ -148,6 +149,9 @@ func loadConfig(path string) (domain.Config, error) {
 func runRoot(cmd *cobra.Command, opts *rootOptions, args []string) error {
 	cfg, err := loadConfig(opts.configPath)
 	if err != nil {
+		return err
+	}
+	if err := validateConfig(cfg); err != nil {
 		return err
 	}
 	types, err := parseTypes(opts.types)
@@ -266,20 +270,40 @@ func runPicker(cmd *cobra.Command, cfg domain.Config, opts *rootOptions, entries
 	if err != nil {
 		return err
 	}
+	return handleSelection(cmd, cfg, opts, result, searched)
+}
+
+// handleSelection acts on what the user chose in the browser. Enter runs
+// the selection by default (enter_action = "execute"); --open, --json, and
+// enter_action = "print" change that.
+func handleSelection(cmd *cobra.Command, cfg domain.Config, opts *rootOptions, result ui.BrowserResult, searched bool) error {
 	if result.Entry == nil || result.Action == ui.ActionNone {
 		if searched {
 			return errNotFound
 		}
 		return nil
 	}
-	if result.Action == ui.ActionOpen || opts.open {
-		return openEntry(cfg, *result.Entry)
+	e := *result.Entry
+	switch {
+	case result.Action == ui.ActionOpen || opts.open:
+		return openEntry(cfg, e)
+	case opts.json:
+		return writeJSON(cmd.OutOrStdout(), []domain.Entry{e})
+	case cfg.EnterAction == domain.EnterExecute:
+		return executeEntry(cmd, e)
+	default:
+		fmt.Fprintln(cmd.OutOrStdout(), formatEntry(e))
+		return nil
 	}
-	if opts.json {
-		return writeJSON(cmd.OutOrStdout(), []domain.Entry{*result.Entry})
+}
+
+func validateConfig(cfg domain.Config) error {
+	switch cfg.EnterAction {
+	case domain.EnterExecute, domain.EnterPrint:
+		return nil
+	default:
+		return fmt.Errorf("invalid enter_action %q (expected %q or %q)", cfg.EnterAction, domain.EnterExecute, domain.EnterPrint)
 	}
-	fmt.Fprintln(cmd.OutOrStdout(), formatEntry(*result.Entry))
-	return nil
 }
 
 // openEntry opens the file that defines an alias or function at its line.

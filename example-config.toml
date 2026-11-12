@@ -5,6 +5,10 @@ editor = "nvim"
 # Open the interactive list when run with no name (or no exact match) on a terminal.
 interactive_default = true
 
+# What enter does in the interactive browser: "execute" runs the selection
+# (in your current shell with `eval "$(witch init zsh)"`), "print" prints it like witch <name>.
+enter_action = "execute"
+
 # Index executables on $PATH (like which). Set false to only search sources.
 index_path = true
 

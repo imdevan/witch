@@ -20,8 +20,8 @@ type BrowserAction int
 const (
 	// ActionNone means the user quit without choosing.
 	ActionNone BrowserAction = iota
-	// ActionPrint prints the selection (enter).
-	ActionPrint
+	// ActionSelect is enter: the CLI executes or prints the selection.
+	ActionSelect
 	// ActionOpen opens the selection's defining file in an editor (o).
 	ActionOpen
 )
@@ -313,7 +313,7 @@ func (m browserModel) handleSharedKey(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool)
 			m.previewMode = true
 			return m, nil, true
 		}
-		model, cmd := m.quit(BrowserResult{Entry: m.selected(), Action: ActionPrint})
+		model, cmd := m.quit(BrowserResult{Entry: m.selected(), Action: ActionSelect})
 		return model, cmd, true
 	case msg.String() == "shift+down":
 		m.preview.ScrollDown(1)
@@ -410,7 +410,7 @@ func (m browserModel) updatePreviewMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case key.Matches(msg, m.keys.Quit):
 		return m.quit(BrowserResult{})
 	case key.Matches(msg, m.keys.Select):
-		return m.quit(BrowserResult{Entry: m.selected(), Action: ActionPrint})
+		return m.quit(BrowserResult{Entry: m.selected(), Action: ActionSelect})
 	case key.Matches(msg, m.keys.Help):
 		m.help.ShowAll = !m.help.ShowAll
 		m.resize(m.width, m.height)

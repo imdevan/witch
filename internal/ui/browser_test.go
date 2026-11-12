@@ -125,7 +125,7 @@ func TestBrowserNarrowListThenPreview(t *testing.T) {
 	}
 
 	done := press(next, "enter").(browserModel)
-	if !done.quitting || done.result.Action != ActionPrint || done.result.Entry.Name != "asdf" {
+	if !done.quitting || done.result.Action != ActionSelect || done.result.Entry.Name != "asdf" {
 		t.Fatalf("enter in preview should select, got %+v", done.result)
 	}
 }
@@ -161,7 +161,7 @@ func TestBrowserEnterPrintsSelection(t *testing.T) {
 	m := sized(newBrowserModel(fixtureEntries(t), testTheme(), BrowserOptions{}), 120, 30)
 
 	done := press(typeText(m, "greet"), "enter").(browserModel)
-	if !done.quitting || done.result.Action != ActionPrint || done.result.Entry == nil || done.result.Entry.Name != "greet" {
+	if !done.quitting || done.result.Action != ActionSelect || done.result.Entry == nil || done.result.Entry.Name != "greet" {
 		t.Fatalf("enter from the search should select the top match, got %+v", done.result)
 	}
 	if done.View() != "" {

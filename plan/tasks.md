@@ -84,13 +84,20 @@
   - [x] 4.8.4 Tests for match indices (word boundaries, case, unicode) and rendered highlight/query flow
 
 
-## Feature 5: search/filtering
+## Feature 5: search/filtering adjustments
 
-- [ ] 5.1 default mode to filtering
-- [ ] 5.2 remove filter label. as the default behavior will be ->user types, user searches.
-- [ ] 5.3 always show which type the filter list is showing under the search.
-  - [ ] 5.3.1 show a line between filter and items with: all aliases funcs bin
-  - muted text. Except for current 
+- [x] 5.1 default mode to filtering
+  - [x] 5.1.1 Browser opens with a focused bubbles `textinput` search (`❯ `, "type to search" placeholder); every keystroke filters the list via `list.SetFilterText` and updates the preview
+  - [x] 5.1.2 Search pre-filled with the CLI arg; enter selects the top/selected match directly
+  - [x] 5.1.3 `esc` or `↓` moves focus to the list for scrolling (`j`/`k`, arrows, pages, `g`/`G`) and single-key actions (`o`, `y`, `Y`, `c`, `J`/`K`, `?`, `q`); `/`, `esc`, or `↑` on the first item returns to the search
+  - [x] 5.1.4 Search-mode chords: `ctrl+n`/`ctrl+p` move selection, `ctrl+o` open, `ctrl+y` copy, `shift+↑/↓` scroll preview; `ctrl+u`/`ctrl+d` keep text-editing behavior
+- [x] 5.2 remove filter label. as the default behavior will be ->user types, user searches.
+  - [x] 5.2.1 List title, `Filter:` prompt, and filter status bar hidden; the search input replaces them
+- [x] 5.3 always show which type the filter list is showing under the search.
+  - [x] 5.3.1 show a line between filter and items with: all aliases funcs bin
+  - [x] 5.3.2 muted text. Except for current (current type in bold `primary`)
+  - [x] 5.3.3 Match count (`visible/total`) right-aligned on the same line when it fits
+- [x] 5.4 Help keys per focus (search vs list); tests for focus switching, typing, type line, chords; README key table updated
 
 ## Feature 6: Release
 - [ ] 6.1 Docs site via `just docs-generate`

@@ -1,47 +1,54 @@
 # Installation
 
-This template is currently setup to build and deploy to homebrew and AUR. 
-
-Because that is what I use so that that is what I have capacity to test at the moment. 
-
-This package `go-cli-template` is built and actually deployed to homebrew and aur to demonstrate the usage of the deployment scripts. 
-
 ## Homebrew
-```bash
-brew install imdevan/go-cli-template/go-cli-template
-```
 
-## Arch (AUR)
 ```bash
-yay -S go-cli-template
+brew install imdevan/witch/witch
 ```
 
 ## GitHub Release
 
-Download the latest binary for your platform from the [releases page](https://github.com/imdevan/go-cli-template/releases).
+Download the latest binary for your platform from the [releases page](https://github.com/imdevan/witch/releases).
 
 ```bash
 # Linux (amd64)
-curl -L https://github.com/imdevan/go-cli-template/releases/latest/download/go-cli-template-linux-amd64.tar.gz | tar -xz
-sudo mv go-cli-template-linux-amd64 /usr/local/bin/go-cli-template
+curl -L https://github.com/imdevan/witch/releases/latest/download/witch-linux-amd64.tar.gz | tar -xz
+sudo mv witch-linux-amd64 /usr/local/bin/witch
 ```
 
 ```bash
 # macOS (Apple Silicon)
-curl -L https://github.com/imdevan/go-cli-template/releases/latest/download/go-cli-template-darwin-arm64.tar.gz | tar -xz
-sudo mv go-cli-template-darwin-arm64 /usr/local/bin/go-cli-template
+curl -L https://github.com/imdevan/witch/releases/latest/download/witch-darwin-arm64.tar.gz | tar -xz
+sudo mv witch-darwin-arm64 /usr/local/bin/witch
 ```
 
 ```bash
 # macOS (Intel)
-curl -L https://github.com/imdevan/go-cli-template/releases/latest/download/go-cli-template-darwin-amd64.tar.gz | tar -xz
-sudo mv go-cli-template-darwin-amd64 /usr/local/bin/go-cli-template
+curl -L https://github.com/imdevan/witch/releases/latest/download/witch-darwin-amd64.tar.gz | tar -xz
+sudo mv witch-darwin-amd64 /usr/local/bin/witch
+```
+
+## Go
+
+```bash
+go install github.com/imdevan/witch/cmd/witch@latest
 ```
 
 ## Manual
+
 ```bash
-gh repo clone imdevan/go-cli-template
-cd go-cli-template
+gh repo clone imdevan/witch
+cd witch
 just build
 sudo just install
 ```
+
+## Next steps
+
+Point witch at your dotfiles so it can find aliases and functions:
+
+```bash
+witch config init --editor
+```
+
+Then uncomment and edit the `[[sources]]` entries. See [CONFIG.md](CONFIG.md).

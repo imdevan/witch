@@ -29,6 +29,7 @@ func TestDefaultConfig(t *testing.T) {
 			"Muted":                cfg.Muted,
 			"Accent":               cfg.Accent,
 			"Border":               cfg.Border,
+			"Highlight":            cfg.Highlight,
 		}
 
 		for name, value := range colorFields {
@@ -68,6 +69,9 @@ func TestDefaultConfig(t *testing.T) {
 		}
 		if cfg.Accent != "13" {
 			t.Errorf("DefaultConfig().Accent = %q, want %q", cfg.Accent, "13")
+		}
+		if cfg.Highlight != "03" {
+			t.Errorf("DefaultConfig().Highlight = %q, want %q", cfg.Highlight, "03")
 		}
 		if cfg.Border != "08" {
 			t.Errorf("DefaultConfig().Border = %q, want %q", cfg.Border, "08")

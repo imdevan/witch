@@ -91,6 +91,8 @@ func renderConfigTemplate(cfg domain.Config) string {
 	builder.WriteString(fmt.Sprintf("# accent = %q\n", cfg.Accent))
 	builder.WriteString(fmt.Sprintf("# muted = %q\n", cfg.Muted))
 	builder.WriteString(fmt.Sprintf("# border = %q\n", cfg.Border))
+	builder.WriteString("# Background for the entry name and search term in the preview\n")
+	builder.WriteString(fmt.Sprintf("# highlight = %q\n", cfg.Highlight))
 	builder.WriteString("\n# Sources\n")
 	builder.WriteString("# Shell files or directories to parse for aliases and functions.\n")
 	builder.WriteString("# Directories are searched recursively. There are no default sources:\n")

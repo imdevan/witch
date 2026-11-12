@@ -20,6 +20,8 @@ type Theme struct {
 	Flags                lipgloss.Color
 	Muted                lipgloss.Color
 	Border               lipgloss.Color
+	// Highlight is the background for matched words in the preview.
+	Highlight lipgloss.Color
 }
 
 // ThemeFromConfig builds a theme with safe fallbacks.
@@ -35,6 +37,7 @@ func ThemeFromConfig(cfg domain.Config) Theme {
 		Flags:                resolveColor(cfg.Flags, "12"),
 		Muted:                resolveColor(cfg.Muted, "08"),
 		Border:               resolveColor(cfg.Border, "08"),
+		Highlight:            resolveColor(cfg.Highlight, "03"),
 	}
 }
 

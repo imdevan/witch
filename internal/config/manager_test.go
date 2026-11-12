@@ -309,6 +309,7 @@ flags = "15"
 muted = "07"
 accent = "16"
 border = "06"
+highlight = "11"
 `)
 	if err := os.WriteFile(configPath, data, 0o644); err != nil {
 		t.Fatalf("write config: %v", err)
@@ -336,6 +337,7 @@ border = "06"
 		{"Muted", cfg.Muted, "07"},
 		{"Accent", cfg.Accent, "16"},
 		{"Border", cfg.Border, "06"},
+		{"Highlight", cfg.Highlight, "11"},
 	}
 
 	for _, tt := range tests {

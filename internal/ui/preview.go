@@ -6,6 +6,7 @@ import (
 	"io/fs"
 	"os"
 	"strings"
+	"unicode"
 
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
@@ -33,8 +34,10 @@ type Preview struct {
 	// HighlightStart and HighlightEnd are the 1-indexed highlighted lines
 	// (0 when nothing is highlighted).
 	HighlightStart, HighlightEnd int
-	files                        map[string][]string
-	readFile                     func(string) ([]string, error)
+	// query is the search term, highlighted in addition to the entry name.
+	query    string
+	files    map[string][]string
+	readFile func(string) ([]string, error)
 }
 
 // NewPreview creates an empty preview pane.
@@ -64,6 +67,24 @@ func (p *Preview) SetEntry(e *domain.Entry) {
 	}
 	p.entry = e
 	p.render()
+}
+
+// SetQuery sets the search term to highlight alongside the entry name.
+// The scroll position is kept so typing doesn't jump the view.
+func (p *Preview) SetQuery(q string) {
+	q = strings.TrimSpace(q)
+	if q == p.query {
+		return
+	}
+	p.query = q
+	if p.entry == nil {
+		return
+	}
+	if lines, err := p.lines(*p.entry); err == nil {
+		offset := p.viewport.YOffset
+		p.viewport.SetContent(p.renderLines(lines))
+		p.viewport.SetYOffset(offset)
+	}
 }
 
 // Entry returns the entry being previewed.
@@ -167,6 +188,11 @@ func (p Preview) renderLines(lines []string) string {
 	text := lipgloss.NewStyle().Foreground(p.theme.Text)
 	marker := lipgloss.NewStyle().Foreground(p.theme.Primary).Bold(true)
 	highlight := lipgloss.NewStyle().Foreground(p.theme.TextHighlight).Bold(true)
+	match := lipgloss.NewStyle().Background(p.theme.Highlight).Foreground(lipgloss.Color("0"))
+	name := ""
+	if p.entry != nil {
+		name = p.entry.Name
+	}
 
 	var b strings.Builder
 	for i, line := range lines {
@@ -174,15 +200,81 @@ func (p Preview) renderLines(lines []string) string {
 		line = strings.ReplaceAll(line, "\t", strings.Repeat(" ", tabWidth))
 		number := fmt.Sprintf("%*d", digits, n)
 		if n >= p.HighlightStart && n <= p.HighlightEnd && p.HighlightStart > 0 {
-			b.WriteString(marker.Render(number+" ▌") + highlight.Render(line))
+			b.WriteString(marker.Render(number+" ▌") + styleMatches(line, name, p.query, highlight, match))
 		} else {
-			b.WriteString(gutter.Render(number+"  ") + text.Render(line))
+			b.WriteString(gutter.Render(number+"  ") + styleMatches(line, name, p.query, text, match))
 		}
 		if i < len(lines)-1 {
 			b.WriteByte('\n')
 		}
 	}
 	return b.String()
+}
+
+// styleMatches renders line in base, with occurrences of name (as a whole
+// word) and query (case-insensitive substring) styled with match on top.
+func styleMatches(line, name, query string, base, match lipgloss.Style) string {
+	indices := MatchIndices(line, name, query)
+	if len(indices) == 0 {
+		return base.Render(line)
+	}
+	return lipgloss.StyleRunes(line, indices, match.Inherit(base).Inline(true), base.Inline(true))
+}
+
+// MatchIndices returns the rune indices in line covered by whole-word
+// occurrences of name and case-insensitive occurrences of query. The query
+// is skipped when it is empty or the same as the name.
+func MatchIndices(line, name, query string) []int {
+	runes := []rune(line)
+	marked := make([]bool, len(runes))
+	if name != "" {
+		markAll(runes, []rune(name), marked, true)
+	}
+	if query != "" && !strings.EqualFold(query, name) {
+		lower := []rune(strings.ToLower(line))
+		if len(lower) == len(runes) {
+			markAll(lower, []rune(strings.ToLower(query)), marked, false)
+		}
+	}
+	var indices []int
+	for i, m := range marked {
+		if m {
+			indices = append(indices, i)
+		}
+	}
+	return indices
+}
+
+func markAll(text, word []rune, marked []bool, wholeWord bool) {
+	if len(word) == 0 {
+		return
+	}
+	for i := 0; i+len(word) <= len(text); i++ {
+		if !runesEqual(text[i:i+len(word)], word) {
+			continue
+		}
+		end := i + len(word)
+		if wholeWord && ((i > 0 && isWordRune(text[i-1])) || (end < len(text) && isWordRune(text[end]))) {
+			continue
+		}
+		for j := i; j < end; j++ {
+			marked[j] = true
+		}
+	}
+}
+
+func runesEqual(a, b []rune) bool {
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
+}
+
+// isWordRune reports whether r can be part of a command name.
+func isWordRune(r rune) bool {
+	return r == '_' || r == '-' || unicode.IsLetter(r) || unicode.IsDigit(r)
 }
 
 // details describes entries whose file can't be shown, such as binaries.

@@ -161,6 +161,21 @@ func TestBrowserPrefilledFilter(t *testing.T) {
 	}
 }
 
+func TestBrowserPassesFilterToPreview(t *testing.T) {
+	m := sized(newBrowserModel(fixtureEntries(t), testTheme(), BrowserOptions{Filter: "gre"}), 120, 30)
+	if m.preview.query != "gre" {
+		t.Fatalf("preview query = %q, want the CLI filter", m.preview.query)
+	}
+	cleared := press(m, "esc").(browserModel)
+	if cleared.preview.query != "" {
+		t.Fatalf("clearing the filter should clear the preview query, got %q", cleared.preview.query)
+	}
+	typing := press(cleared, "/", "a", "s").(browserModel)
+	if typing.preview.query != "as" {
+		t.Fatalf("typing a filter should update the preview query, got %q", typing.preview.query)
+	}
+}
+
 func TestBrowserTypeCycle(t *testing.T) {
 	m := sized(newBrowserModel(fixtureEntries(t), testTheme(), BrowserOptions{}), 120, 30)
 	want := []struct {

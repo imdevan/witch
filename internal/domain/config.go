@@ -19,8 +19,10 @@ type Config struct {
 	Muted                string `toml:"muted"`
 	Accent               string `toml:"accent"`
 	Border               string `toml:"border"`
-	InteractiveDefault   bool   `toml:"interactive_default"`
-	ListSpacing          string `toml:"list_spacing"`
+	// Highlight colors matches of the name and search term in the preview.
+	Highlight          string `toml:"highlight"`
+	InteractiveDefault bool   `toml:"interactive_default"`
+	ListSpacing        string `toml:"list_spacing"`
 	// IndexPath controls whether executables on $PATH are indexed.
 	IndexPath bool `toml:"index_path"`
 	// Sources are files or directories parsed for aliases and functions.
@@ -54,6 +56,7 @@ func DefaultConfig() Config {
 		Muted:                "08",
 		Accent:               "13",
 		Border:               "08",
+		Highlight:            "03",
 		InteractiveDefault:   true,
 		ListSpacing:          "space",
 		IndexPath:            true,

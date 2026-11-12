@@ -190,14 +190,20 @@ func (m *browserModel) resize(width, height int) {
 	m.preview.SetSize(w, h)
 }
 
-// syncPreview points the preview at the selected list item.
+// syncPreview points the preview at the selected list item and passes it
+// the current filter text to highlight.
 func (m *browserModel) syncPreview() {
 	if item, ok := m.list.SelectedItem().(EntryItem); ok {
 		e := item.Entry
 		m.preview.SetEntry(&e)
-		return
+	} else {
+		m.preview.SetEntry(nil)
 	}
-	m.preview.SetEntry(nil)
+	if m.list.FilterState() == list.Unfiltered {
+		m.preview.SetQuery("")
+	} else {
+		m.preview.SetQuery(m.list.FilterValue())
+	}
 }
 
 func (m browserModel) selected() *domain.Entry {

@@ -1,11 +1,15 @@
 package ui
 
 import (
+	"fmt"
+	"reflect"
+	"regexp"
 	"strings"
 	"testing"
 
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/x/ansi"
+	"github.com/muesli/termenv"
 
 	"github.com/imdevan/witch/internal/domain"
 )
@@ -83,4 +87,75 @@ func TestPreviewEmpty(t *testing.T) {
 	if !strings.Contains(ansi.Strip(p.View()), "file not found") {
 		t.Errorf("expected a read error in the preview:\n%s", ansi.Strip(p.View()))
 	}
+}
+
+func TestMatchIndices(t *testing.T) {
+	tests := []struct {
+		line, name, query string
+		want              []int
+	}{
+		{`alias asdf="cowsay 'hi'"`, "asdf", "", []int{6, 7, 8, 9}},
+		// whole-word only for the name
+		{"asdfx asdf x_asdf asdf-y", "asdf", "", []int{6, 7, 8, 9}},
+		{"cd ../..", "..", "", []int{3, 4, 6, 7}},
+		// query is a case-insensitive substring, in addition to the name
+		{"greet() { Greeting }", "greet", "GRE", []int{0, 1, 2, 3, 4, 10, 11, 12}},
+		// query equal to the name adds nothing
+		{"greetings greet", "greet", "Greet", []int{10, 11, 12, 13, 14}},
+		{"nothing here", "asdf", "zz", nil},
+		// rune indices, not byte indices
+		{"é asdf", "asdf", "", []int{2, 3, 4, 5}},
+	}
+	for _, tt := range tests {
+		got := MatchIndices(tt.line, tt.name, tt.query)
+		if !reflect.DeepEqual(got, tt.want) {
+			t.Errorf("MatchIndices(%q, %q, %q) = %v, want %v", tt.line, tt.name, tt.query, got, tt.want)
+		}
+	}
+}
+
+func TestPreviewHighlightsNameAndQuery(t *testing.T) {
+	lipgloss.SetColorProfile(termenv.ANSI)
+	t.Cleanup(func() { lipgloss.SetColorProfile(termenv.Ascii) })
+
+	theme := testTheme()
+	theme.Highlight = lipgloss.Color("3")
+	entries := fixtureEntries(t)
+	p := NewPreview(theme)
+	p.SetSize(80, 20)
+	p.SetEntry(&entries[0])
+
+	// Background color 3 (from the theme) with a dark foreground for contrast.
+	bg := regexp.MustCompile(`\x1b\[[0-9;]*\b30;43m`)
+	line := previewLine(t, p, 40)
+	if !bg.MatchString(line) {
+		t.Fatalf("expected the name to use the highlight background, got %q", line)
+	}
+	if got := ansi.Strip(line); !strings.Contains(got, `alias asdf="cowsay 'hi'"`) {
+		t.Fatalf("highlighting should not change the text, got %q", got)
+	}
+	if bg.MatchString(previewLine(t, p, 39)) {
+		t.Error("lines without matches should not be highlighted")
+	}
+
+	offset := p.YOffset()
+	p.SetQuery("filler")
+	if !bg.MatchString(previewLine(t, p, 39)) {
+		t.Error("search term should be highlighted on other lines")
+	}
+	if p.YOffset() != offset {
+		t.Error("changing the query should keep the scroll position")
+	}
+}
+
+// previewLine returns the rendered content row for a 1-indexed file line.
+func previewLine(t *testing.T, p Preview, n int) string {
+	t.Helper()
+	for _, row := range strings.Split(p.viewport.View(), "\n") {
+		if strings.HasPrefix(strings.TrimSpace(ansi.Strip(row)), fmt.Sprint(n)+" ") {
+			return row
+		}
+	}
+	t.Fatalf("line %d not visible", n)
+	return ""
 }

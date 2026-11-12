@@ -25,6 +25,8 @@ flags = "12"
 accent = "13"
 muted = "08"
 border = "08"
+# Background for the entry name and search term in the preview
+highlight = "03"
 
 # Sources
 # Shell files or directories to parse for aliases and functions.

@@ -12,6 +12,7 @@ import (
 
 	"github.com/imdevan/witch/internal/domain"
 	"github.com/imdevan/witch/internal/testutil"
+	"github.com/imdevan/witch/internal/utils"
 )
 
 type cliEnv struct {
@@ -287,8 +288,8 @@ func TestDisplayPathAbbreviatesHome(t *testing.T) {
 		"/etc/zsh/zshrc:3":     "/etc/zsh/zshrc:3",
 	}
 	for in, want := range tests {
-		if got := displayPath(in); got != want {
-			t.Errorf("displayPath(%q) = %q, want %q", in, got, want)
+		if got := utils.DisplayPath(in); got != want {
+			t.Errorf("DisplayPath(%q) = %q, want %q", in, got, want)
 		}
 	}
 

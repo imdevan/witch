@@ -10,6 +10,7 @@ import (
 	"github.com/charmbracelet/bubbles/list"
 	"github.com/spf13/cobra"
 
+	"github.com/imdevan/witch/internal/adapters/clipboard"
 	"github.com/imdevan/witch/internal/adapters/editor"
 	"github.com/imdevan/witch/internal/adapters/tty"
 	"github.com/imdevan/witch/internal/config"
@@ -255,27 +256,29 @@ func runPicker(cmd *cobra.Command, cfg domain.Config, opts *rootOptions, entries
 	if len(entries) == 0 {
 		return &exitError{code: 1, msg: fmt.Sprintf("%s: nothing to show (configure [[sources]] or enable index_path)", name)}
 	}
-	selected, err := ui.RunEntryPicker(entries, ui.ThemeFromConfig(cfg), ui.EntryPickerOptions{
+	clip := clipboard.Adapter{}
+	result, err := ui.RunBrowser(entries, ui.ThemeFromConfig(cfg), ui.BrowserOptions{
 		Title:   name,
 		Filter:  filter,
 		Spacing: cfg.ListSpacing,
+		Copy:    clip.WriteText,
 	}, tty.GetProgramOptions()...)
 	if err != nil {
 		return err
 	}
-	if selected == nil {
+	if result.Entry == nil || result.Action == ui.ActionNone {
 		if searched {
 			return errNotFound
 		}
 		return nil
 	}
-	if opts.open {
-		return openEntry(cfg, *selected)
+	if result.Action == ui.ActionOpen || opts.open {
+		return openEntry(cfg, *result.Entry)
 	}
 	if opts.json {
-		return writeJSON(cmd.OutOrStdout(), []domain.Entry{*selected})
+		return writeJSON(cmd.OutOrStdout(), []domain.Entry{*result.Entry})
 	}
-	fmt.Fprintln(cmd.OutOrStdout(), formatEntry(*selected))
+	fmt.Fprintln(cmd.OutOrStdout(), formatEntry(*result.Entry))
 	return nil
 }
 

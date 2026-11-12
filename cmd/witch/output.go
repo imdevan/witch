@@ -4,12 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"os"
-	"path/filepath"
-	"strings"
 	"text/tabwriter"
 
 	"github.com/imdevan/witch/internal/domain"
+	"github.com/imdevan/witch/internal/utils"
 )
 
 // formatEntry renders an entry for non-interactive output. Executables print
@@ -26,7 +24,7 @@ func formatEntry(e domain.Entry) string {
 	if definition == "" {
 		definition = fallbackDefinition(e)
 	}
-	return displayPath(e.Location()) + "\n" + definition
+	return utils.DisplayPath(e.Location()) + "\n" + definition
 }
 
 // fallbackDefinition reconstructs source for entries without raw text.
@@ -45,21 +43,6 @@ func fallbackDefinition(e domain.Entry) string {
 		flag = "-s "
 	}
 	return fmt.Sprintf("alias %s%s=%q", flag, e.Name, e.Value)
-}
-
-// displayPath abbreviates the home directory to ~.
-func displayPath(path string) string {
-	home, err := os.UserHomeDir()
-	if err != nil || home == "" || home == "/" {
-		return path
-	}
-	if path == home {
-		return "~"
-	}
-	if strings.HasPrefix(path, home+string(filepath.Separator)) {
-		return "~" + strings.TrimPrefix(path, home)
-	}
-	return path
 }
 
 // writeList prints one tab-separated row per entry: name, type, location.

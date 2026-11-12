@@ -28,7 +28,7 @@ func SourceFiles(paths []string, ignore *Matcher) ([]string, []error) {
 		if resolved, err := filepath.EvalSymlinks(path); err == nil {
 			key = resolved
 		}
-		if seen[key] || ignore.Match(path) || !isTextFile(path) {
+		if seen[key] || ignore.Match(path) || !IsTextFile(path) {
 			return
 		}
 		seen[key] = true
@@ -85,8 +85,8 @@ func SourceFiles(paths []string, ignore *Matcher) ([]string, []error) {
 	return files, errs
 }
 
-// isTextFile reports whether path is a reasonably sized, non-binary file.
-func isTextFile(path string) bool {
+// IsTextFile reports whether path is a reasonably sized, non-binary file.
+func IsTextFile(path string) bool {
 	info, err := os.Stat(path)
 	if err != nil || !info.Mode().IsRegular() || info.Size() > maxSourceFileSize {
 		return false

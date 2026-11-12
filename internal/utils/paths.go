@@ -3,6 +3,7 @@ package utils
 import (
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/imdevan/witch/internal/package"
 )
@@ -41,4 +42,19 @@ func xdgHome(envKey, fallbackSuffix string) string {
 		return ""
 	}
 	return filepath.Join(home, fallbackSuffix)
+}
+
+// DisplayPath abbreviates the home directory prefix of path to ~.
+func DisplayPath(path string) string {
+	home, err := os.UserHomeDir()
+	if err != nil || home == "" || home == "/" {
+		return path
+	}
+	if path == home {
+		return "~"
+	}
+	if strings.HasPrefix(path, home+string(filepath.Separator)) {
+		return "~" + strings.TrimPrefix(path, home)
+	}
+	return path
 }

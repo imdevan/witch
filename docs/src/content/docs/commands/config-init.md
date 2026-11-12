@@ -8,7 +8,7 @@ Generate a default config file
 ## Usage
 
 ```bash
-go-cli-template config init
+witch config init
 ```
 
 ## Flags
@@ -18,10 +18,10 @@ go-cli-template config init
 
 | Flag | Type | Description |
 |------|------|-------------|
-| -f, --force | bool | overwrite existing config |
 | -e, --editor | bool | open config in editor after creation |
+| -f, --force | bool | overwrite existing config |
 
 
 ## Source
 
-See [config_init.go](https://github.com/imdevan/go-cli-template/blob/main/cmd/go-cli-template/config_init.go) for implementation details.
+See [init.go](https://github.com/imdevan/witch/blob/main/cmd/witch/init.go) for implementation details.

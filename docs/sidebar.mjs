@@ -7,6 +7,7 @@ const apiReference = {
     { label: 'config', link: '/api/config' },
     { label: 'domain', link: '/api/domain' },
     { label: 'errors', link: '/api/errors' },
+    { label: 'sources', link: '/api/sources' },
     { label: 'ui', link: '/api/ui' },
     { label: 'utils', link: '/api/utils' },
     { label: 'workflow', link: '/api/workflow' },
@@ -18,10 +19,10 @@ const apiReference = {
 };
 
 const sidebar = [
-  { label: 'go-cli-template', link: '/' },
+  { label: 'witch', link: '/' },
   { label: 'Install', link: '/install' },
   { label: 'Commands', items: [
-    { label: 'go-cli-template', link: '/commands/go-cli-template' },
+    { label: 'witch', link: '/commands/witch' },
     { label: 'completion', link: '/commands/completion' },
     {
       label: 'config',
@@ -30,6 +31,7 @@ const sidebar = [
         { label: 'config init', link: '/commands/config-init' },
       ],
     },
+    { label: 'init', link: '/commands/init' },
 
   ] },
   { label: 'Configuration', link: '/configuration' },

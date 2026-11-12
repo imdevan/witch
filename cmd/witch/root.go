@@ -10,6 +10,7 @@ import (
 	"github.com/charmbracelet/bubbles/list"
 	"github.com/spf13/cobra"
 
+	"github.com/imdevan/witch/internal/adapters/editor"
 	"github.com/imdevan/witch/internal/adapters/tty"
 	"github.com/imdevan/witch/internal/config"
 	"github.com/imdevan/witch/internal/domain"
@@ -31,7 +32,14 @@ type rootOptions struct {
 	all         bool
 	json        bool
 	interactive bool
+	open        bool
 	types       []string
+}
+
+// openInEditor opens path at line in the configured editor. It is a
+// variable so tests can stub out launching a real editor.
+var openInEditor = func(editorCmd, path string, line int) error {
+	return editor.New(editorCmd).OpenAtLine(path, line)
 }
 
 var rootCmd = newRootCmd()
@@ -84,11 +92,12 @@ With no name, or no exact match on a terminal, it opens an interactive list.`,
 	// 	description:
 	//
 	// 		Control which entries are printed and how.
-	//	flags: all, type, json, interactive
+	//	flags: all, type, json, interactive, open
 	cmd.Flags().BoolVarP(&opts.all, "all", "a", false, "print all matches, including shadowed ones")
 	cmd.Flags().StringSliceVarP(&opts.types, "type", "t", nil, "only match these types: alias, function, executable (repeatable or comma-separated)")
 	cmd.Flags().BoolVar(&opts.json, "json", false, "print matches as JSON")
 	cmd.Flags().BoolVarP(&opts.interactive, "interactive", "i", false, "always open the interactive list")
+	cmd.Flags().BoolVarP(&opts.open, "open", "o", false, "open the file defining the alias or function in your editor, at its line")
 
 	// @docs-flag-group
 	//
@@ -144,6 +153,14 @@ func runRoot(cmd *cobra.Command, opts *rootOptions, args []string) error {
 	if err != nil {
 		return err
 	}
+	if opts.open {
+		if opts.json {
+			return errors.New("--open cannot be used with --json")
+		}
+		if len(args) > 1 {
+			return errors.New("--open takes a single name")
+		}
+	}
 
 	idx, warnings := sources.Collect(collectOptions(cfg))
 	for _, w := range warnings {
@@ -159,7 +176,7 @@ func runRoot(cmd *cobra.Command, opts *rootOptions, args []string) error {
 	}
 
 	if len(args) == 0 {
-		if !opts.json && isTTY && cfg.InteractiveDefault {
+		if opts.open || (!opts.json && isTTY && cfg.InteractiveDefault) {
 			return runPicker(cmd, cfg, opts, all, "", false)
 		}
 		if !opts.all {
@@ -192,6 +209,14 @@ func runRoot(cmd *cobra.Command, opts *rootOptions, args []string) error {
 	// as long as something fuzzy-matches it.
 	if len(args) == 1 && len(missing) == 1 && isTTY && !opts.json && cfg.InteractiveDefault && hasFuzzyMatch(all, args[0]) {
 		return runPicker(cmd, cfg, opts, all, args[0], true)
+	}
+
+	if opts.open {
+		if len(missing) > 0 {
+			fmt.Fprintf(cmd.ErrOrStderr(), "%s: %s not found\n", name, missing[0])
+			return errNotFound
+		}
+		return openEntry(cfg, found[0])
 	}
 
 	if opts.json {
@@ -244,11 +269,22 @@ func runPicker(cmd *cobra.Command, cfg domain.Config, opts *rootOptions, entries
 		}
 		return nil
 	}
+	if opts.open {
+		return openEntry(cfg, *selected)
+	}
 	if opts.json {
 		return writeJSON(cmd.OutOrStdout(), []domain.Entry{*selected})
 	}
 	fmt.Fprintln(cmd.OutOrStdout(), formatEntry(*selected))
 	return nil
+}
+
+// openEntry opens the file that defines an alias or function at its line.
+func openEntry(cfg domain.Config, e domain.Entry) error {
+	if e.Type == domain.TypeExecutable || e.Line <= 0 {
+		return &exitError{code: 1, msg: fmt.Sprintf("%s: %s is an executable (%s), not defined in a source file", name, e.Name, e.File)}
+	}
+	return openInEditor(cfg.Editor, e.File, e.Line)
 }
 
 func parseTypes(values []string) (map[domain.EntryType]bool, error) {

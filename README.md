@@ -47,6 +47,8 @@ witch -t alias,function <n>  # only match some types (alias, function, executabl
 witch --json <name>          # JSON output
 witch                        # browse everything interactively
 witch -i <query>             # always open the interactive list, pre-filtered
+witch -o <name>              # open the defining file at the alias/function's line
+witch -o                     # pick an entry interactively, then open it
 ```
 
 ### Flags
@@ -57,6 +59,7 @@ witch -i <query>             # always open the interactive list, pre-filtered
 | `-t`, `--type` | Only match these types: `alias`, `function`, `executable` (also `func`, `bin`, `path`). Repeatable or comma-separated |
 | `--json` | Print matches as a JSON array |
 | `-i`, `--interactive` | Always open the interactive list; arguments pre-fill the filter |
+| `-o`, `--open` | Open the file that defines the alias or function in your `editor`, at its line. Takes one name (or none to pick interactively). Not supported for executables or with `--json` |
 | `-c`, `--config` | Use this config file instead of the global/local ones |
 | `-v`, `--version` | Print the version |
 
@@ -109,7 +112,7 @@ path = "*.zwc"          # a glob without a slash matches file names anywhere
 | `[[ignore]] path` | string | none | File, directory, or glob (`*`, `?`, `[...]`, `**`) to skip inside sources |
 | `index_path` | bool | `true` | Index executables on `$PATH` |
 | `interactive_default` | bool | `true` | Open the interactive list when no name is given (or none matches) on a terminal |
-| `editor` | string | `nvim` | Editor used by `witch config` |
+| `editor` | string | `nvim` | Editor used by `witch config` and `witch -o` |
 | `list_spacing` | string | `space` | List density: `compact`, `tight`, `space` |
 
 Paths accept `~` and `$VARS`. Relative paths resolve against the directory of the config file that declares them. A project-local `.witch/config.toml` adds its sources and ignores to the global ones.

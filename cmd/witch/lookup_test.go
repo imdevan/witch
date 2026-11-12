@@ -265,7 +265,7 @@ func TestInvalidType(t *testing.T) {
 
 func TestRootFlags(t *testing.T) {
 	cmd := newRootCmd()
-	for name, short := range map[string]string{"all": "a", "type": "t", "json": "", "interactive": "i"} {
+	for name, short := range map[string]string{"all": "a", "type": "t", "json": "", "interactive": "i", "open": "o"} {
 		f := cmd.Flags().Lookup(name)
 		if f == nil {
 			t.Errorf("missing --%s flag", name)

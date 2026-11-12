@@ -31,7 +31,7 @@ Ignore patterns:
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `editor` | string | `nvim` | Editor used by `witch config` (falls back to `$VISUAL` / `$EDITOR` when empty) |
+| `editor` | string | `nvim` | Editor used by `witch config` and `witch -o` (falls back to `$VISUAL` / `$EDITOR` when empty) |
 | `interactive_default` | bool | `true` | On a terminal, open the interactive list when no name is given or no name matches exactly |
 | `list_spacing` | string | `space` | List density: `compact` (title only), `tight` (title + description, no margin), `space` (with spacing) |
 

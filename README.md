@@ -81,20 +81,31 @@ Executables print their path, as `which` does. Aliases and functions print where
 
 At 80 columns or wider, the list is on the left and a preview of the selected entry's file is on the right. The definition is highlighted and scrolled into view. Narrower terminals show only the list, and `enter` opens a full-width preview (`esc` goes back).
 
+In the preview, every whole-word occurrence of the entry's name is highlighted, and so is your search term (case-insensitive) when it differs from the name. Set the color with `highlight` in your config.
+
 Executables that are scripts are previewed as text. Binaries show their path, symlink target, mode, and size.
 
-| Key | Action |
-|-----|--------|
-| `enter` | Print the selection and exit (same output as `witch <name>`). On narrow terminals, opens the preview first |
-| `/` | Fuzzy filter (pre-filled with the name you searched) |
-| `tab` / `shift+tab` | Cycle the type filter: all → aliases → functions → executables |
-| `o` | Open the defining file at the definition's line in your `editor` |
-| `y` | Copy the definition (an executable's path) |
-| `Y` | Copy `path:line` |
-| `c` | Copy the name |
-| `J` / `K`, `ctrl+d` / `ctrl+u` | Scroll the preview |
-| `?` | Toggle full help |
-| `q`, `esc` | Quit (`esc` clears an active filter first) |
+The browser opens with the search focused: just type to filter (fuzzy), and the list and preview follow each keystroke. The search is pre-filled with the name you passed. A line under the search shows the type filter (`all aliases funcs bin`, current one emphasized) and the match count.
+
+Press `esc` or `↓` to move into the list to scroll and use single-key actions; `/`, `esc`, or `↑` on the first item goes back to the search.
+
+| Key | Search focused | List focused |
+|-----|----------------|--------------|
+| `enter` | Print the top/selected match and exit | Print the selection and exit |
+| typing | Filter the list | — |
+| `esc`, `↓` | Move to the list | — |
+| `/`, `esc` | — | Back to the search (`↑` on the first item too) |
+| `↑`/`↓`, `j`/`k`, `pgup`/`pgdn`, `g`/`G` | — (`ctrl+n`/`ctrl+p` move the selection) | Move through the list |
+| `tab` / `shift+tab` | Cycle type: all → aliases → funcs → bin | same |
+| `o` | — (`ctrl+o`) | Open the defining file at the definition's line in your `editor` |
+| `y` | — (`ctrl+y`) | Copy the definition (an executable's path) |
+| `Y` / `c` | — | Copy `path:line` / the name |
+| `shift+↑`/`shift+↓` | Scroll the preview | Scroll the preview (also `J`/`K`, `ctrl+d`/`ctrl+u`) |
+| `?` | — | Toggle full help |
+| `q` | — | Quit |
+| `ctrl+c` | Quit | Quit |
+
+On narrow terminals `enter` opens a full-width preview first; there, `enter` prints, `esc` goes back, and `j`/`k` scroll.
 
 The browser is inline, so it draws below your prompt and leaves only the printed result behind when it exits.
 
@@ -135,6 +146,7 @@ path = "*.zwc"          # a glob without a slash matches file names anywhere
 | `interactive_default` | bool | `true` | Open the interactive list when no name is given (or none matches) on a terminal |
 | `editor` | string | `nvim` | Editor used by `witch config` and `witch -o` |
 | `list_spacing` | string | `space` | List density: `compact`, `tight`, `space` |
+| `highlight` | string | `03` | Background color for the name and search term in the preview |
 
 Paths accept `~` and `$VARS`. Relative paths resolve against the directory of the config file that declares them. A project-local `.witch/config.toml` adds its sources and ignores to the global ones.
 

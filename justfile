@@ -28,8 +28,8 @@ _install-pack:
 
 build:
 	go build -o {{PACKAGE_BIN}} {{PACKAGE_CMD}}
-	@size=$(stat -c %s {{PACKAGE_BIN}} 2>/dev/null || stat -f %z {{cli_pack}} 2>/dev/null); \
-	echo "Build size: $(awk "BEGIN {printf \"%.2f MB\", $size/1048576}")"
+	@size=$(wc -c < {{PACKAGE_BIN}}); \
+	echo "Build size: $(awk -v s="$size" 'BEGIN {printf "%.2f MB", s/1048576}')"
 
 build-run:
 	go build -o {{PACKAGE_BIN}} {{PACKAGE_CMD}} && {{PACKAGE_BIN}}
